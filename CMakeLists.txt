@@ -26,12 +26,20 @@ if(NOT ftxui_POPULATED)
 endif()
 
 set(CMAKE_CXX_STANDARD 20) # this is a stupid fix for my stupid InteliSense so knows that I'm using the stupid c++20 standard
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 
 add_compile_options(-Wall -Wextra -Wpedantic)
 
-add_library(base FileHandler.hxx FileHandler.cxx GlobalConstants.hxx Job.hxx Job.cxx JobManager.hxx JobManager.cxx)
+add_library(base 
+include/FileHandler.hxx
+include/GlobalConstants.hxx
+include/Job.hxx
+include/JobManager.hxx
+src/FileHandler.cxx
+src/Job.cxx
+src/JobManager.cxx)
 target_include_directories(base PUBLIC ${ftxui_SOURCE_DIR}/include)
-target_include_directories(base PUBLIC )
+target_include_directories(base PUBLIC ${CMAKE_SOURCE_DIR}/include)
 
 add_executable(monitor main.cxx)
 
