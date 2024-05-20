@@ -17,7 +17,8 @@ namespace SJM
     std::string_view FileHandler::ReadFile()
     {
         std::stringstream sstr;
-        sstr << inputStream.rdbuf();
+        if (isOk)
+            sstr << inputStream.rdbuf();
         return static_cast<std::string_view>(sstr.str());
     }
 } // namespace SJM

@@ -79,11 +79,13 @@ namespace SJM
         }
         else if(hasStarted && !hasFinished)
         {            
-                std::size_t percentPos = fileContents.rfind(GlobalConstants::percentExpression);
-                if (percentPos != std::string::npos)
-                    percent = fileContents.substr(percentPos - GlobalConstants::substrOffset,GlobalConstants::substrLength);
-
-                return Job::AnalysisState::Started;
+            std::size_t percentPos = fileContents.rfind(GlobalConstants::percentExpression);
+            if (percentPos != std::string::npos)
+            {
+                percent = fileContents.substr(percentPos - GlobalConstants::substrOffset,GlobalConstants::substrLength);
+            }
+                
+            return Job::AnalysisState::Started;
         }
         else if (!hasStarted && !hasFinished)
         {
