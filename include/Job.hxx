@@ -18,8 +18,8 @@
                 Job() = default;
                 explicit Job(const std::string &);
                 ~Job() = default;
-                Job(const Job&) = delete;
-                Job& operator=(const Job&) = delete;
+                Job(const Job&) = default;
+                Job& operator=(const Job&) = default;
                 Job(Job&&) = default;
                 Job& operator=(Job&&) = default;
 
@@ -40,10 +40,9 @@
 
                 bool hasStarted,hasFinished;
                 int currentPercentage,lastPercentage;
-                std::string_view fileContents;
-                std::string percent,jobId,taskId;
+                std::string fileContents;
+                std::string percent,jobId,taskId,fileName;
                 AnalysisState state;
-                FileHandler file;
                 std::chrono::steady_clock::time_point currentTime,lastTime;
                 std::chrono::seconds elapsedTime,ETA,remainigTime;
         };

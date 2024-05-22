@@ -22,7 +22,7 @@
                 FileHandler(FileHandler&&) = default;
                 FileHandler& operator=(FileHandler&&) = default;
 
-                std::string_view ReadFile();
+                std::string ReadFile();
         };
     } // namespace SJM
     

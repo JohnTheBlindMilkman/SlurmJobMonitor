@@ -28,7 +28,7 @@ endif()
 set(CMAKE_CXX_STANDARD 20) # this is a stupid fix for my stupid InteliSense so knows that I'm using the stupid c++20 standard
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 
-add_compile_options(-Wall -Wextra -Wpedantic)
+add_compile_options(-Wall -Wextra -Wpedantic -g)
 
 add_library(base 
 include/FileHandler.hxx
