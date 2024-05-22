@@ -32,7 +32,9 @@ int main(int argc, char *argv[])
 
     while (true)
     {
-        jm.UpdateJobs();
+        if (!jm.UpdateJobs())
+            break;
+            
         auto document = jm.PrintStatus(parser.get<bool>("--minimal"),parser.get<bool>("--full"));
         auto screen = ftxui::Screen::Create(ftxui::Dimension::Fit(document));
         Render(screen, document);

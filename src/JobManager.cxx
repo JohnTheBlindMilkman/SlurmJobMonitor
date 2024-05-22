@@ -23,7 +23,7 @@ namespace SJM
     JobManager::~JobManager()
     {}
 
-    void JobManager::UpdateJobs()
+    bool JobManager::UpdateJobs()
     {
         std::string path;
         unsigned outFile = 0, logFile = 0;
@@ -52,6 +52,8 @@ namespace SJM
 
         runningCounter = outFile;
         finishedCounter = logFile;
+
+        return (outFile > 0) ? true : false;
     }
 
     ftxui::Table JobManager::CreateTable()

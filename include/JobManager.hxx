@@ -33,7 +33,7 @@
                 JobManager(std::string dirPath,unsigned njobs);
                 ~JobManager();
 
-                void UpdateJobs();
+                bool UpdateJobs();
                 ftxui::Element PrintStatus(bool minimal, bool full);
         };
     } // namespace SJM
