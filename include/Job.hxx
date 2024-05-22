@@ -4,6 +4,8 @@
     #include "FileHandler.hxx"
     #include "GlobalConstants.hxx"
 
+    #include <numeric>
+    #include <deque>
     #include <chrono>
     #include <iomanip>
     #include <ostream>
@@ -24,6 +26,7 @@
                 Job& operator=(Job&&) = default;
 
                 bool Evaluate();
+                std::chrono::seconds CalcAverage(const std::deque<std::chrono::seconds> &);
                 std::string GetPercentage() const;
                 std::string GetJobId() const;
                 std::string GetTaskId() const;
@@ -38,14 +41,21 @@
                 std::stringstream MakeTime(std::chrono::seconds);
                 void CalculateTime();
 
+                static constexpr std::size_t maxQueueSize{5};
+
                 bool hasStarted,hasFinished;
                 int currentPercentage,lastPercentage;
-                std::string fileContents;
-                std::string percent,jobId,taskId,fileName;
+                std::string fileContents,percent,jobId,taskId,fileName;
                 AnalysisState state;
                 std::chrono::steady_clock::time_point currentTime,lastTime;
-                std::chrono::seconds elapsedTime,ETA,remainigTime;
+                std::chrono::seconds avgElapsedTime,ETA,remainigTime;
+                std::deque<std::chrono::seconds> elapsedQueue;
         };
+        inline std::chrono::seconds Job::CalcAverage(const std::deque<std::chrono::seconds> &queue)
+        {
+            return std::accumulate(queue.begin(),queue.end(),std::chrono::seconds(0)) / queue.size();
+        }
+
         inline std::string Job::GetPercentage() const
         {
             return std::to_string(currentPercentage);
@@ -90,7 +100,7 @@
         }
         inline std::string Job::PrintElapsedTime()
         {
-            return MakeTime(elapsedTime).str();
+            return MakeTime(avgElapsedTime).str();
         }
         inline std::string Job::PrintEtaTime()
         {

@@ -13,7 +13,7 @@ namespace SJM
     state(AnalysisState::NotStarted),
     currentTime(std::chrono::steady_clock::now()),
     lastTime(std::chrono::steady_clock::now()),
-    elapsedTime(0),
+    avgElapsedTime(0),
     ETA(0),
     remainigTime(0)
     {
@@ -121,10 +121,15 @@ namespace SJM
 
     void Job::CalculateTime()
     {
-        elapsedTime = std::chrono::duration_cast<std::chrono::seconds>(currentTime - lastTime);
+        elapsedQueue.push_back(std::chrono::duration_cast<std::chrono::seconds>(currentTime - lastTime));
+        if (elapsedQueue.size() > maxQueueSize)
+            elapsedQueue.pop_front();
+
+        avgElapsedTime = CalcAverage(elapsedQueue);
+
         int percentProgress = currentPercentage - lastPercentage;
-        (percentProgress > 0) ? ETA = elapsedTime * GlobalConstants::maxPercentage / percentProgress : ETA = std::chrono::seconds(0);
-        (ETA > elapsedTime) ? remainigTime = ETA - elapsedTime : remainigTime = elapsedTime - ETA;
+        (percentProgress > 0) ? ETA = avgElapsedTime * GlobalConstants::maxPercentage / percentProgress : ETA = std::chrono::seconds(0);
+        (ETA > avgElapsedTime) ? remainigTime = ETA - avgElapsedTime : remainigTime = avgElapsedTime - ETA;
     }
 
 } // namespace SJM
