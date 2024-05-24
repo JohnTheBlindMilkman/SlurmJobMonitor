@@ -9,11 +9,11 @@ namespace SJM
     lastPercentage(0),
     fileContents(""),
     percent(""),
+    fileName(name),
     state(AnalysisState::NotStarted),
-    file(name),
     currentTime(std::chrono::steady_clock::now()),
     lastTime(std::chrono::steady_clock::now()),
-    elapsedTime(0),
+    avgElapsedTime(0),
     ETA(0),
     remainigTime(0)
     {
@@ -65,6 +65,7 @@ namespace SJM
 
     Job::AnalysisState Job::EvalState()
     {
+        FileHandler file(fileName);
         fileContents = file.ReadFile();
 
         if (fileContents.find(GlobalConstants::beginingExpression) != std::string::npos)
@@ -78,14 +79,12 @@ namespace SJM
             return Job::AnalysisState::Finished;
         }
         else if(hasStarted && !hasFinished)
-        {            
-            std::size_t percentPos = fileContents.rfind(GlobalConstants::percentExpression);
-            if (percentPos != std::string::npos)
-            {
-                percent = fileContents.substr(percentPos - GlobalConstants::substrOffset,GlobalConstants::substrLength);
-            }
-                
-            return Job::AnalysisState::Started;
+        {
+                std::size_t percentPos = fileContents.rfind(GlobalConstants::percentExpression);
+                if (percentPos != std::string::npos)
+                    percent = fileContents.substr(percentPos - GlobalConstants::substrOffset,GlobalConstants::substrLength);
+
+                return Job::AnalysisState::Started;
         }
         else if (!hasStarted && !hasFinished)
         {
@@ -122,10 +121,15 @@ namespace SJM
 
     void Job::CalculateTime()
     {
-        elapsedTime = std::chrono::duration_cast<std::chrono::seconds>(currentTime - lastTime);
+        elapsedQueue.push_back(std::chrono::duration_cast<std::chrono::seconds>(currentTime - lastTime));
+        if (elapsedQueue.size() > maxQueueSize)
+            elapsedQueue.pop_front();
+
+        avgElapsedTime = CalcAverage(elapsedQueue);
+
         int percentProgress = currentPercentage - lastPercentage;
-        (percentProgress > 0) ? ETA = elapsedTime * GlobalConstants::maxPercentage / percentProgress : ETA = std::chrono::seconds(0);
-        (ETA > elapsedTime) ? remainigTime = ETA - elapsedTime : remainigTime = elapsedTime - ETA;
+        (percentProgress > 0) ? ETA = avgElapsedTime * GlobalConstants::maxPercentage / percentProgress : ETA = std::chrono::seconds(0);
+        (ETA > avgElapsedTime) ? remainigTime = ETA - avgElapsedTime : remainigTime = avgElapsedTime - ETA;
     }
 
 } // namespace SJM

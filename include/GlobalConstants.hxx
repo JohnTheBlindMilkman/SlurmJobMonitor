@@ -42,7 +42,7 @@
              * @brief Helper constant for finding the beginning of the analysis process
              * 
              */
-            constexpr std::string_view beginingExpression{"at entry"};
+            constexpr std::string_view beginingExpression{"with entries"};
             /**
              * @brief Helper constant for finding the end of the analysis process
              * 
