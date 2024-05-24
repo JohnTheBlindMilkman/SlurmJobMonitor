@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
             break;
             
         auto document = jm.PrintStatus(parser.get<bool>("--minimal"),parser.get<bool>("--full"));
-        auto screen = ftxui::Screen::Create(ftxui::Dimension::Fit(document));
+        auto screen = ftxui::Screen::Create(ftxui::Dimension::Full(),ftxui::Dimension::Fit(document));
         Render(screen, document);
         std::cout << resetPos;
         screen.Print();

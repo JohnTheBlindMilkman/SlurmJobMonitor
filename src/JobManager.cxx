@@ -56,31 +56,28 @@ namespace SJM
         return (outFile > 0) ? true : false;
     }
 
-    ftxui::Table JobManager::CreateTable()
+    ftxui::Elements JobManager::CreateTable()
     {
-        std::vector<std::vector<std::string> > tableContent{{"Job Id","Task Id","Current %","Remaining Time"}};
+        ftxui::Elements tableContent;
+        std::vector<Job> jobVec;
+        for(auto &[key,job] : jobCollection) // passing map to vector for sorting 
+            jobVec.push_back(job);
+        std::sort(jobVec.begin(),jobVec.end(),[](Job j1, Job j2){return (j1.GetPercentage() > j2.GetPercentage());});
 
-        for(auto &[key,job] : jobCollection)
+        for(auto &job : jobVec)
         {
-            tableContent.push_back(std::vector<std::string>({job.GetJobId(),job.GetTaskId(),job.GetPercentage(),job.PrintRemainingTime()}));
+            tableContent.push_back(
+                ftxui::window(
+                    ftxui::text(job.GetJobId() + ":" + job.GetTaskId()) | ftxui::center,
+                    ftxui::vbox(
+                        ftxui::text(job.PrintPercentage() + " %\n"),
+                        ftxui::text(job.PrintRemainingTime())
+                    )
+                )
+            );
         }
 
-        auto table = ftxui::Table(tableContent);
-
-        table.SelectAll().Border(ftxui::LIGHT);
-
-        table.SelectRow(0).Decorate(ftxui::bold);
-        table.SelectRow(0).SeparatorVertical(ftxui::LIGHT);
-        table.SelectRow(0).Border(ftxui::DASHED);
-
-        table.SelectColumn(2).DecorateCells(ftxui::center);
-        table.SelectColumn(3).DecorateCells(ftxui::center);
-
-        auto content = table.SelectRows(1, -1);
-        content.DecorateCellsAlternateRow(ftxui::color(ftxui::Color::Cyan), 2, 0);
-        content.DecorateCellsAlternateRow(ftxui::color(ftxui::Color::White), 2, 1);
-
-        return table;
+        return tableContent;
     }
 
     ftxui::Color JobManager::GetColorByStatus(const Job::AnalysisState &state) const
@@ -103,52 +100,38 @@ namespace SJM
 
     ftxui::Elements JobManager::CreateStatusBox()
     {
-        ftxui::Elements columnsAndRows;
+        ftxui::Elements elems;
         
-        for (const auto &inner : CreateJobStateMatrix())
+        for (const auto &jobState : CreateJobStateVector())
         {
-            ftxui::Elements row;
-            for (const auto &elem : inner)
-            {
-                row.push_back(ftxui::text("   ") | ftxui::bgcolor(GetColorByStatus(elem)));
-            }
-            columnsAndRows.push_back(ftxui::hbox(std::move(row)));
+            elems.push_back(ftxui::text("   ") | ftxui::bgcolor(GetColorByStatus(jobState)));
         }
 
-        return columnsAndRows;
+        return elems;
     }
 
-    std::vector<std::vector<Job::AnalysisState> > JobManager::CreateJobStateMatrix()
+    std::vector<Job::AnalysisState> JobManager::CreateJobStateVector()
     {
         auto jobIterator = jobCollection.begin();
-        std::vector<std::vector<Job::AnalysisState> > matrix;
-        std::vector<Job::AnalysisState> rowVec;
+        std::vector<Job::AnalysisState> stateVec;
 
         for (unsigned tot = 0; tot < totalJobs; ++tot)
         {
             if (tot < finishedCounter)
             {
-                rowVec.push_back(Job::AnalysisState::Finished);
+                stateVec.push_back(Job::AnalysisState::Finished);
             }
             else if (tot < jobCollection.size() + finishedCounter)
             {
-                rowVec.push_back(jobIterator->second.State());
+                stateVec.push_back(jobIterator->second.State());
                 jobIterator++;
             }
             else
             {
-                rowVec.push_back(Job::AnalysisState::NotStarted);
-            }
-
-            if (tot % statusBoxWidth == statusBoxWidth - 1)
-            {
-                matrix.push_back(rowVec);
-                rowVec = std::vector<Job::AnalysisState>();
+                stateVec.push_back(Job::AnalysisState::NotStarted);
             }
         }
-        matrix.push_back(rowVec);
-
-        return matrix;
+        return stateVec;
     }
 
     ftxui::Element JobManager::PrintStatus(bool minimal, bool full)
@@ -162,7 +145,11 @@ namespace SJM
 
         if (full)
         {
-            contents.push_back(CreateTable().Render());
+            contents.push_back(ftxui::vbox(
+                    ftxui::text("Currenlty running jobs") | ftxui::center,
+                    ftxui::separator(),
+                    ftxui::hflow(std::move(CreateTable()))) | ftxui::border
+                );
         }
         else if (!minimal)
         {
@@ -178,7 +165,7 @@ namespace SJM
                     ftxui::text("   Error = "),
                     ftxui::text("   ") | ftxui::bgcolor(ftxui::Color::Red)) | ftxui::center,
                 ftxui::separator(),
-                CreateStatusBox()) | ftxui::border);
+                ftxui::hflow(std::move(CreateStatusBox()))) | ftxui::border);
         }
         return ftxui::vbox(std::move(contents));
     }

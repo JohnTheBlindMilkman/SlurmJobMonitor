@@ -20,10 +20,10 @@
                 static constexpr std::string_view runningJobPostfix{".out"};
                 static constexpr unsigned statusBoxWidth{32};
 
-                ftxui::Table CreateTable();
+                ftxui::Elements CreateTable();
                 ftxui::Elements CreateStatusBox();
                 ftxui::Color GetColorByStatus(const Job::AnalysisState &) const;
-                std::vector<std::vector<Job::AnalysisState> > CreateJobStateMatrix();
+                std::vector<Job::AnalysisState> CreateJobStateVector();
 
                 std::map<std::string,Job> jobCollection;
                 std::string directoryPath;

@@ -27,11 +27,12 @@
 
                 bool Evaluate();
                 std::chrono::seconds CalcAverage(const std::deque<std::chrono::seconds> &);
-                std::string GetPercentage() const;
+                int GetPercentage() const;
                 std::string GetJobId() const;
                 std::string GetTaskId() const;
                 AnalysisState State() const;
                 std::string_view PrintState() const;
+                std::string PrintPercentage() const;
                 std::string PrintRemainingTime();
                 std::string PrintElapsedTime();
                 std::string PrintEtaTime();
@@ -56,9 +57,9 @@
             return std::accumulate(queue.begin(),queue.end(),std::chrono::seconds(0)) / queue.size();
         }
 
-        inline std::string Job::GetPercentage() const
+        inline int Job::GetPercentage() const
         {
-            return std::to_string(currentPercentage);
+            return currentPercentage;
         }
 
         inline std::string Job::GetJobId() const
@@ -93,6 +94,10 @@
                     return "Error";
             }
             return "";
+        }
+        inline std::string Job::PrintPercentage() const
+        {
+            return std::to_string(currentPercentage);
         }
         inline std::string Job::PrintRemainingTime()
         {
