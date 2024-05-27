@@ -140,7 +140,10 @@ namespace SJM
 
     std::tuple<std::chrono::seconds,std::chrono::seconds,std::chrono::high_resolution_clock::time_point> JobManager::CalculateTimeLeft() const
     {
-        std::chrono::seconds prevRunTime,futureRunTime,largestCurrentRemainingTime,totRemainingTime;
+        std::chrono::seconds prevRunTime = std::chrono::seconds(0),
+            futureRunTime = std::chrono::seconds(0),
+            largestCurrentRemainingTime = std::chrono::seconds(0),
+            totRemainingTime = std::chrono::seconds(0);
         for (const auto &[key,job] : jobCollection)
         {
             if (job.State() == Job::AnalysisState::Finished)
@@ -154,11 +157,12 @@ namespace SJM
             }
         }
 
+        std::cout << std::chrono::duration_cast<std::chrono::seconds>(prevRunTime).count() << "\nFinished counter: " << finishedCounter << "\n";
         prevRunTime = prevRunTime/finishedCounter; // how long (on average) did finished jobs run
         futureRunTime = prevRunTime * ((totalJobs-finishedCounter-runningCounter)/runningCounter); // estimate how long the jobs which have not yet strted will take
         totRemainingTime = prevRunTime+largestCurrentRemainingTime+futureRunTime;
 
-        return std::make_tuple(totRemainingTime,prevRunTime,std::chrono::high_resolution_clock::now() + totRemainingTime);
+        return std::make_tuple(totRemainingTime,prevRunTime,std::chrono::system_clock::now() + totRemainingTime);
     }
 
     std::stringstream JobManager::MakeTime(std::chrono::seconds sec)
