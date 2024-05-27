@@ -155,7 +155,7 @@ namespace SJM
         }
 
         prevRunTime = prevRunTime/finishedCounter; // how long (on average) did finished jobs run
-        futureRunTime = prevRunTime * (totalJobs/((totalJobs-finishedCounter-runningCounter)*runningCounter)); // estimate how long the jobs which have not yet strted will take
+        futureRunTime = prevRunTime * ((totalJobs-finishedCounter-runningCounter)/runningCounter); // estimate how long the jobs which have not yet strted will take
         totRemainingTime = prevRunTime+largestCurrentRemainingTime+futureRunTime;
 
         return std::make_tuple(totRemainingTime,prevRunTime,std::chrono::high_resolution_clock::now() + totRemainingTime);
@@ -187,6 +187,8 @@ namespace SJM
     ftxui::Element JobManager::PrintStatus(bool minimal, bool full)
     {
         ftxui::Elements contents;
+        const std::time_t ETAtime = std::chrono::system_clock::to_time_t(ETA);
+
         contents.push_back(ftxui::vbox(
                     ftxui::hbox(
                         ftxui::text("Total number of jobs: " + std::to_string(totalJobs)),
@@ -196,7 +198,7 @@ namespace SJM
                     ftxui::hbox(
                         ftxui::text("Finished jobs: " + std::to_string(finishedCounter)),
                         ftxui::filler(),
-                        ftxui::text("Predicted ETA: " /* + std::format("{:%H%M%S}",ETA) */)
+                        ftxui::text("Predicted ETA: " + std::string(std::ctime(&ETAtime)))
                     ),
                     ftxui::hbox(
                         ftxui::text("Currently running: " + std::to_string(runningCounter)),
