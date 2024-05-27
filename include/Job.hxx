@@ -8,7 +8,7 @@
     #include <deque>
     #include <chrono>
     #include <iomanip>
-    #include <ostream>
+    #include <iostream>
 
     namespace SJM
     {
@@ -28,6 +28,8 @@
                 bool Evaluate();
                 std::chrono::seconds CalcAverage(const std::deque<std::chrono::seconds> &);
                 int GetPercentage() const;
+                std::chrono::seconds GetRunTime() const;
+                std::chrono::seconds GetRemainingTime() const;
                 std::string GetJobId() const;
                 std::string GetTaskId() const;
                 AnalysisState State() const;
@@ -36,20 +38,23 @@
                 std::string PrintRemainingTime();
                 std::string PrintElapsedTime();
                 std::string PrintEtaTime();
+                std::string PrintRunTime();
 
             private:
                 AnalysisState EvalState();
                 std::stringstream MakeTime(std::chrono::seconds);
+                std::chrono::seconds ReadTime(const std::string &&);
                 void CalculateTime();
 
                 static constexpr std::size_t maxQueueSize{5};
+                static constexpr std::string_view realTimePrefix{"real	"};
 
                 bool hasStarted,hasFinished;
                 int currentPercentage,lastPercentage;
                 std::string fileContents,percent,jobId,taskId,fileName;
                 AnalysisState state;
                 std::chrono::steady_clock::time_point currentTime,lastTime;
-                std::chrono::seconds avgElapsedTime,ETA,remainigTime;
+                std::chrono::seconds avgElapsedTime,ETA,remainigTime,realRunTime;
                 std::deque<std::chrono::seconds> elapsedQueue;
         };
         inline std::chrono::seconds Job::CalcAverage(const std::deque<std::chrono::seconds> &queue)
@@ -60,6 +65,16 @@
         inline int Job::GetPercentage() const
         {
             return currentPercentage;
+        }
+
+        inline std::chrono::seconds Job::GetRunTime() const
+        {
+            return realRunTime;
+        }
+
+        inline std::chrono::seconds Job::GetRemainingTime() const
+        {
+            return remainigTime;
         }
 
         inline std::string Job::GetJobId() const
@@ -110,6 +125,10 @@
         inline std::string Job::PrintEtaTime()
         {
             return MakeTime(ETA).str();
+        }
+        inline std::string Job::PrintRunTime()
+        {
+            return MakeTime(realRunTime).str();
         }
     } // namespace SJM
     

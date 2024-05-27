@@ -34,11 +34,6 @@
              */
             constexpr int substrLength{3};
             /**
-             * @brief File extension of the SLURM files where the analysis is progressing
-             * 
-             */
-            constexpr std::string_view fileExtension{".out"};
-            /**
              * @brief Helper constant for finding the beginning of the analysis process
              * 
              */

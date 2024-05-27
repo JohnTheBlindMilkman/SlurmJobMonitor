@@ -19,10 +19,25 @@ namespace SJM
     {
         std::string prefix = "slurm-", delim = "_",postfix = ".out";
         std::size_t pos1 = name.find(prefix);
-        std::size_t pos2 = name.rfind(delim);
-        std::size_t pos3 = name.find(postfix);
-        jobId = name.substr(pos1 + prefix.size(),pos2 - pos1 - prefix.size());
-        taskId = name.substr(pos2 + delim.size(),pos3 - pos2 - delim.size());
+        if (pos1 != std::string::npos)
+        {
+            std::size_t pos2 = name.rfind(delim);
+            std::size_t pos3 = name.find(postfix);
+            jobId = name.substr(pos1 + prefix.size(),pos2 - pos1 - prefix.size());
+            taskId = name.substr(pos2 + delim.size(),pos3 - pos2 - delim.size());
+        }
+        else
+        {
+            prefix = "apr12ana_all_",postfix = ".log";
+            pos1 = name.find(prefix);
+            std::size_t pos2 = name.find(postfix);
+            jobId = "N/A";
+            taskId = name.substr(pos1 + prefix.size(),pos2 - pos1 - prefix.size());
+            state = Job::AnalysisState::Finished;
+
+            FileHandler file(name);
+            realRunTime = ReadTime(file.ReadFile());
+        }
     }
 
     bool Job::Evaluate()
@@ -117,6 +132,31 @@ namespace SJM
         sstr << std::setw(2) << m.count() << "m:" << std::setw(2) << s.count() << 's';
         sstr.fill(fill);
         return sstr;
+    }
+
+    std::chrono::seconds Job::ReadTime(const std::string &&str)
+    {
+        using namespace std::chrono;
+
+        seconds time(0);
+        const std::size_t charSize(2);
+        std::size_t pos1 = str.find(realTimePrefix);
+        if (pos1 != std::string::npos)
+        {
+            std::string sstr = str.substr(pos1 + realTimePrefix.size(),20);
+
+            std::size_t posM = sstr.find("m");
+            std::size_t posS = sstr.find("s");
+            if (posM != std::string::npos)
+            {
+                time += seconds(int(std::stof(sstr.substr(0,posM))*60));
+            }
+            if (posS != std::string::npos)
+            {
+                time += seconds(int(std::stof(sstr.substr(posM + charSize,posS - posM - charSize))));
+            }
+        }
+        return time;
     }
 
     void Job::CalculateTime()
