@@ -157,7 +157,6 @@ namespace SJM
             }
         }
 
-        std::cout << std::chrono::duration_cast<std::chrono::seconds>(prevRunTime).count() << "\nFinished counter: " << finishedCounter << "\n";
         prevRunTime = prevRunTime/finishedCounter; // how long (on average) did finished jobs run
         futureRunTime = prevRunTime * ((totalJobs-finishedCounter-runningCounter)/runningCounter); // estimate how long the jobs which have not yet strted will take
         totRemainingTime = prevRunTime+largestCurrentRemainingTime+futureRunTime;
