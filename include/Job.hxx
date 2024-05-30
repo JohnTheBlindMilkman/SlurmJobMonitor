@@ -27,11 +27,13 @@
 
                 bool Evaluate();
                 std::chrono::seconds CalcAverage(const std::deque<std::chrono::seconds> &);
+                unsigned CalcAverage(const std::deque<unsigned> &);
                 int GetPercentage() const;
                 std::chrono::seconds GetRunTime() const;
                 std::chrono::seconds GetRemainingTime() const;
                 std::string GetJobId() const;
                 std::string GetTaskId() const;
+                std::string GetErrorMsg() const;
                 AnalysisState State() const;
                 std::string_view PrintState() const;
                 std::string PrintPercentage() const;
@@ -48,18 +50,25 @@
 
                 static constexpr std::size_t maxQueueSize{5};
                 static constexpr std::string_view realTimePrefix{"real	"};
+                static constexpr int maxErrorCount{5};
 
                 bool hasStarted,hasFinished;
-                int currentPercentage,lastPercentage;
-                std::string fileContents,percent,jobId,taskId,fileName;
+                int currentPercentage,lastPercentage,avgPercentage,errorCounter;
+                std::string fileContents,percent,jobId,taskId,fileName,errorMessage;
                 AnalysisState state;
-                std::chrono::steady_clock::time_point currentTime,lastTime;
+                std::chrono::system_clock::time_point currentTime,lastTime;
                 std::chrono::seconds avgElapsedTime,ETA,remainigTime,realRunTime;
                 std::deque<std::chrono::seconds> elapsedQueue;
+                std::deque<unsigned> progressQueue;
         };
         inline std::chrono::seconds Job::CalcAverage(const std::deque<std::chrono::seconds> &queue)
         {
             return std::accumulate(queue.begin(),queue.end(),std::chrono::seconds(0)) / queue.size();
+        }
+
+        inline unsigned Job::CalcAverage(const std::deque<unsigned> &queue)
+        {
+            return std::accumulate(queue.begin(),queue.end(),0) / queue.size();
         }
 
         inline int Job::GetPercentage() const
@@ -85,6 +94,11 @@
         inline std::string Job::GetTaskId() const
         {
             return taskId;
+        }
+
+        inline std::string Job::GetErrorMsg() const
+        {
+            return errorMessage;
         }
 
         inline Job::AnalysisState Job::State() const

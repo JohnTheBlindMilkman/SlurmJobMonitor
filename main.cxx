@@ -33,7 +33,10 @@ int main(int argc, char *argv[])
     while (true)
     {
         if (!jm.UpdateJobs())
+        {
+            std::cout << "\nAll the jobs have finished\n";
             break;
+        }
             
         auto document = jm.PrintStatus(parser.get<bool>("--minimal"),parser.get<bool>("--full"));
         auto screen = ftxui::Screen::Create(ftxui::Dimension::Full(),ftxui::Dimension::Fit(document));

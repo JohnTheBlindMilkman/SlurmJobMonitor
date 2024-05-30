@@ -7,12 +7,15 @@ namespace SJM
     hasFinished(false),
     currentPercentage(0),
     lastPercentage(0),
+    avgPercentage(0),
+    errorCounter(0),
     fileContents(""),
     percent(""),
     fileName(name),
+    errorMessage(""),
     state(AnalysisState::NotStarted),
-    currentTime(std::chrono::steady_clock::now()),
-    lastTime(std::chrono::steady_clock::now()),
+    currentTime(std::chrono::system_clock::now()),
+    lastTime(std::chrono::system_clock::now()),
     avgElapsedTime(0),
     ETA(0),
     remainigTime(0)
@@ -37,6 +40,9 @@ namespace SJM
 
             FileHandler file(name);
             realRunTime = ReadTime(file.ReadFile());
+
+            if (errorCounter >= maxErrorCount) // I'm starting to produce spaghetti code
+                state = Job::AnalysisState::Error;
         }
     }
 
@@ -61,9 +67,11 @@ namespace SJM
                 catch (const std::exception &e)
                 {
                     currentPercentage = lastPercentage;
+                    ++errorCounter;
+                    errorMessage += errorCounter + "unable to parse current percentage, ";
                 }
 
-                currentTime = std::chrono::steady_clock::now();
+                currentTime = std::chrono::system_clock::now();
                 CalculateTime();
                 break;
             case Job::AnalysisState::Finished:
@@ -109,6 +117,9 @@ namespace SJM
         {
             return Job::AnalysisState::Error;
         }
+
+        if (errorCounter >= maxErrorCount)
+            return Job::AnalysisState::Error;
     }
 
     std::stringstream Job::MakeTime(std::chrono::seconds sec)
@@ -149,11 +160,34 @@ namespace SJM
             std::size_t posS = sstr.find("s");
             if (posM != std::string::npos)
             {
-                time += seconds(int(std::stof(sstr.substr(0,posM))*60));
+                float minutes;
+                try
+                {
+                    minutes = std::stof(sstr.substr(0,posM));
+                }
+                catch(const std::exception& e)
+                {
+                    minutes = 0.;
+                    ++errorCounter;
+                    errorMessage += errorCounter + "unable to parse minutes, ";
+                }
+                time += seconds(static_cast<int>(minutes)*60);
             }
             if (posS != std::string::npos)
             {
-                time += seconds(int(std::stof(sstr.substr(posM + charSize,posS - posM - charSize))));
+                float sec;
+                try
+                {
+                    sec = std::stof(sstr.substr(posM + charSize,posS - posM - charSize));
+                }
+                catch(const std::exception& e)
+                {
+                    sec = 0.;
+                    ++errorCounter;
+                    errorMessage += errorCounter + "unable to parse seconds, ";
+                }
+                
+                time += seconds(static_cast<int>(sec));
             }
         }
         return time;
@@ -165,11 +199,15 @@ namespace SJM
         if (elapsedQueue.size() > maxQueueSize)
             elapsedQueue.pop_front();
 
-        avgElapsedTime = CalcAverage(elapsedQueue);
+        progressQueue.push_back(abs(currentPercentage - lastPercentage));
+        if (progressQueue.size() > maxQueueSize)
+            progressQueue.pop_front();
 
-        int percentProgress = currentPercentage - lastPercentage;
-        (percentProgress > 0) ? ETA = avgElapsedTime * GlobalConstants::maxPercentage / percentProgress : ETA = std::chrono::seconds(0);
-        (ETA > avgElapsedTime) ? remainigTime = ETA - avgElapsedTime : remainigTime = avgElapsedTime - ETA;
+        avgElapsedTime = CalcAverage(elapsedQueue);
+        avgPercentage = CalcAverage(progressQueue);
+
+        (avgPercentage > 0) ? ETA = avgElapsedTime * GlobalConstants::maxPercentage / avgPercentage : ETA = std::chrono::seconds(0);
+        remainigTime = abs(ETA - avgElapsedTime);
     }
 
 } // namespace SJM

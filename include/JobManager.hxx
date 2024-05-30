@@ -24,6 +24,7 @@
                 ftxui::Elements CreateStatusBox();
                 ftxui::Color GetColorByStatus(const Job::AnalysisState &) const;
                 std::vector<Job::AnalysisState> CreateJobStateVector();
+                ftxui::Elements CreateJobErrorMsgVector();
                 std::tuple<std::chrono::seconds,std::chrono::seconds,std::chrono::high_resolution_clock::time_point> CalculateTimeLeft() const;
                 std::stringstream MakeTime(std::chrono::seconds);
 

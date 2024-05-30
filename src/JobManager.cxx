@@ -138,6 +138,23 @@ namespace SJM
         return stateVec;
     }
 
+    ftxui::Elements JobManager::CreateJobErrorMsgVector()
+    {
+        ftxui::Elements vec;
+        for (const auto &[key,job] : jobCollection)
+        {
+            if (job.State() == Job::AnalysisState::Error)
+            {
+                vec.push_back(ftxui::hbox(
+                    ftxui::text(job.GetJobId() + job.GetTaskId() + " = ") | ftxui::color(ftxui::Color::Orange1),
+                    ftxui::text(job.GetErrorMsg())
+                ));
+            }
+        }
+
+        return vec;
+    }
+
     std::tuple<std::chrono::seconds,std::chrono::seconds,std::chrono::high_resolution_clock::time_point> JobManager::CalculateTimeLeft() const
     {
         std::chrono::seconds prevRunTime = std::chrono::seconds(0),
@@ -189,7 +206,7 @@ namespace SJM
 
     ftxui::Element JobManager::PrintStatus(bool minimal, bool full)
     {
-        ftxui::Elements contents;
+        ftxui::Elements contents,errors;
         const std::time_t ETAtime = std::chrono::system_clock::to_time_t(ETA);
 
         contents.push_back(ftxui::vbox(
@@ -201,14 +218,20 @@ namespace SJM
                     ftxui::hbox(
                         ftxui::text("Finished jobs: " + std::to_string(finishedCounter)),
                         ftxui::filler(),
-                        ftxui::text("Predicted ETA: " + std::string(std::ctime(&ETAtime)))
+                        ftxui::text("Predicted ETA: " + std::string(std::ctime(&ETAtime))) 
                     ),
                     ftxui::hbox(
                         ftxui::text("Currently running: " + std::to_string(runningCounter)),
                         ftxui::filler(),
-                        ftxui::text("Previous average job runtime: " + MakeTime(avgFinishTime).str())
+                        ftxui::text("Previous average job runtime: " + MakeTime(avgFinishTime).str()) 
                     )
                 ) | ftxui::border);
+
+        errors = std::move(CreateJobErrorMsgVector());
+        if (errors.size() > 0)
+        {
+            contents.push_back(ftxui::vbox(std::move(errors)) | ftxui::border);
+        }
 
         if (full)
         {
