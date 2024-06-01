@@ -1,0 +1,15 @@
+#ifndef Config_hxx
+    #define Config_hxx
+
+    #include <string_view>
+
+    namespace SJM::Config
+    {
+        inline constexpr std::string_view projectName{ "@PROJECT_NAME@" };
+        inline constexpr std::string_view projectVersion{ "@PROJECT_VERSION@" };
+        inline constexpr int projectVersionMajor { @PROJECT_VERSION_MAJOR@ };
+        inline constexpr int projectVersionMinor { @PROJECT_VERSION_MINOR@ };
+        inline constexpr int projectVersionPatch { @PROJECT_VERSION_PATCH@ };
+    }
+
+#endif

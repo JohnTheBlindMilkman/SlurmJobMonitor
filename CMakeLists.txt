@@ -1,12 +1,16 @@
 cmake_minimum_required(VERSION 3.1...3.29)
 project(
     SlurmJobMonitor
-    VERSION 1.1
+    VERSION 1.2.0
     LANGUAGES CXX)
 
-#find_package(ftxui 5 REQUIRED)
-
 include(FetchContent)
+include(cmake/Doxygen.cmake)
+
+add_subdirectory(configuredFiles)
+
+option(SJM_ENABLE_DOXYGEN "Enable doxygen" OFF)
+
 set(FETCHCONTENT_UPDATES_DISCONNECTED TRUE)
 FetchContent_Declare(
   ftxui
@@ -17,8 +21,8 @@ FetchContent_Declare(
     argparse
     GIT_REPOSITORY https://github.com/p-ranav/argparse.git
 )
-FetchContent_MakeAvailable(argparse)
 
+FetchContent_MakeAvailable(argparse)
 FetchContent_GetProperties(ftxui)
 if(NOT ftxui_POPULATED)
   FetchContent_Populate(ftxui)
@@ -28,7 +32,11 @@ endif()
 set(CMAKE_CXX_STANDARD 20) # this is a stupid fix for my stupid InteliSense so knows that I'm using the stupid c++20 standard
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 
-add_compile_options(-Wall -Wextra -Wpedantic -g)
+if(SJM_ENABLE_DOXYGEN)
+  SlurmJobMonitor_enable_doxygen("awesome-sidebar")
+endif()
+
+add_compile_options(-Wall -Wextra -Wpedantic)
 
 add_library(base 
 include/FileHandler.hxx

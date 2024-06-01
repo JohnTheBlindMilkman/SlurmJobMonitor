@@ -1,13 +1,21 @@
 #include "argparse/argparse.hpp"
 
 #include "JobManager.hxx"
+#include "Config.hpp"
 
+#include "signal.h"
 #include <thread>
 #include <chrono>
 
+void terminateProgram(int signum)
+{
+    std::cout << "\nRecieved interrupt - stopping execution\n" << std::endl;
+    std::exit(1);
+}
+
 int main(int argc, char *argv[])
 {    
-    argparse::ArgumentParser parser("monitor");
+    argparse::ArgumentParser parser("monitor",std::string(SJM::Config::projectVersion));
 
     parser.add_argument("path").help("Path to SLURM output direcotry").required();
     parser.add_argument("njobs").help("Number of jobs that were submitted to SLURM").scan<'i',unsigned>();
@@ -15,6 +23,8 @@ int main(int argc, char *argv[])
     auto &group = parser.add_mutually_exclusive_group();
     group.add_argument("-m","--minimal").help("Print minimal amount of information").flag();
     group.add_argument("-f","--full").help("Print all available information").flag();
+
+    parser.add_description("Slurm Job Monitor (" + std::string(SJM::Config::projectVersion) + ") - Monitoring script for standard HADES DST macro execution on SLURM batchfatm at GSI");
 
     try 
     {
@@ -36,6 +46,10 @@ int main(int argc, char *argv[])
         {
             std::cout << "\nAll the jobs have finished\n";
             break;
+        }
+        else if (signal(SIGINT,terminateProgram) == SIG_IGN)
+        {
+            signal(SIGINT,SIG_IGN);
         }
             
         auto document = jm.PrintStatus(parser.get<bool>("--minimal"),parser.get<bool>("--full"));

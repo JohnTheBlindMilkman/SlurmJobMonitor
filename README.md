@@ -8,6 +8,7 @@ This program utilises the following:
 
 - [Argument Parser for Modern C++ ](https://github.com/p-ranav/argparse) by p-ranav
 - [FTXUI](https://github.com/ArthurSonzogni/FTXUI) by Arthur Sozogni
+- [doxygen-awesome-css](https://github.com/jothepro/doxygen-awesome-css) by jothepro (only if building with doxygen option)
 
 ## Instalation
 
@@ -15,10 +16,12 @@ Clone this repository and once youre inside the directory do:
 ```
 mkdir build
 cd build
-cmake ..
+cmake -DCMAKE_BUILD_TYPE=Release ..
 make
 ```
-and pray for successful compilation.
+and pray for successful compilation. If you wish to create documentation add `-DSJM_ENABLE_DOXYGEN=ON` flag before the `..` (make sure you have doxygen installed on your machine).
+
+> If you want to use a debugger, because something is broken or you broke something, change the `-DCMAKE_BUILD_TYPE=Release` flag to `Debug`.
 
 ## Usage
 
