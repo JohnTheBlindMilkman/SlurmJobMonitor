@@ -1,7 +1,7 @@
 #include "argparse/argparse.hpp"
 
 #include "JobManager.hxx"
-#include "Config.hpp"
+#include "Config.hxx"
 
 #include "signal.h"
 #include <thread>
