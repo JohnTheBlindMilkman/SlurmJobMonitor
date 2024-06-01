@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.1...3.29)
 project(
     SlurmJobMonitor
-    VERSION 1.2.0
+    VERSION 1.2.1
     LANGUAGES CXX)
 
 include(FetchContent)
