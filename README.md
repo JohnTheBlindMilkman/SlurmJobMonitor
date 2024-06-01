@@ -8,6 +8,7 @@ This program utilises the following:
 
 - [Argument Parser for Modern C++ ](https://github.com/p-ranav/argparse) by p-ranav
 - [FTXUI](https://github.com/ArthurSonzogni/FTXUI) by Arthur Sozogni
+- [doxygen-awesome-css](https://github.com/jothepro/doxygen-awesome-css) by jothepro (only if building with doxygen option)
 
 ## Instalation
 
@@ -15,35 +16,36 @@ Clone this repository and once youre inside the directory do:
 ```
 mkdir build
 cd build
-cmake ..
+cmake -DCMAKE_BUILD_TYPE=Release ..
 make
 ```
-and pray for successful compilation.
+and pray for successful compilation. If you wish to create documentation add `-DSJM_ENABLE_DOXYGEN=ON` flag before the `..` (make sure you have doxygen installed on your machine).
+
+> If you want to use a debugger, because something is broken or you broke something, change the `-DCMAKE_BUILD_TYPE=Release` flag to `Debug`.
 
 ## Usage
 
 For the script to work it need access to the output folder where SLURM saves the log files of the finished jobs. Before that happens, i.e. while the jobs are being executed, the .log file exists as an .out file (contents are the same). These files are what the SJM looks for and where it takes the information from.
 
-The currently only working optino is using the `sshfs` command to mount the out/ folder on your local machine. Due to the inaccesibility of virgo from the outside, it is impossible to fetch the required dependencies when building this project there.
+Currently there are two options for running this program:
+- Compile it on your local linux distribution and use the `sshfs` command to mount the out/ folder there.
+- Build the program on vae24.hpc, where the newest software is installed (gcc 10.4 and cmake 3.18).
 
 In order to run the program execcute the binary file `./monintor` with 3 mandatory arguments:
-
 - path to mounted out/ directory
 - the total number of jobs submitted to SLURM
 - refresh rate (time in seconds) of the program
 
-> **Important note:** do not set the refresh rate too high, the program takes some time to read all the files (expecially with a lot of files). Moreover, if the refresh rate is too quick it messes up the remaing time calculation. As of the moment of speaking 30s seems to be the sweet spot.
+> **Important note:** do not set the refresh rate too high, the program takes some time to read all the files (expecially with a lot of files). Moreover, if the refresh rate is too quick it messes up the remaing time calculation. As of the moment of speaking 30s seems to be the smallest number it will work with.
 
 The SJM has three modes of printing the information:
-
 - standard mode - information about the amount of running jobs and total jobs with a graphical representation of them
 - minimal mode - onlu the information about running and total jobs
 - full mode - prints a table with information about all jobs separately (ID, state, remaining time)
 
 ## Limitations
 
-1. You have to use the `sshfs`.
-2. Your job has to use the standard HTool analysis percentage print.
+1. Your job has to use the standard HTool analysis percentage print.
 2. Your jobs have to end with the standard "Finished DST analysis".
 3. SLURM output has to be all in one direcotry.
 

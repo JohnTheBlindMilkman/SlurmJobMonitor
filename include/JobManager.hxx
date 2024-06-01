@@ -18,14 +18,19 @@
             private:
                 static constexpr std::string_view finishedJobPostfix{".log"};
                 static constexpr std::string_view runningJobPostfix{".out"};
-                static constexpr unsigned statusBoxWidth{32};
+                static constexpr unsigned maxRunningJobs{400};
 
-                ftxui::Table CreateTable();
+                ftxui::Elements CreateTable();
                 ftxui::Elements CreateStatusBox();
                 ftxui::Color GetColorByStatus(const Job::AnalysisState &) const;
-                std::vector<std::vector<Job::AnalysisState> > CreateJobStateMatrix();
+                std::vector<Job::AnalysisState> CreateJobStateVector();
+                ftxui::Elements CreateJobErrorMsgVector();
+                std::tuple<std::chrono::seconds,std::chrono::seconds,std::chrono::high_resolution_clock::time_point> CalculateTimeLeft() const;
+                std::stringstream MakeTime(std::chrono::seconds);
 
                 std::map<std::string,Job> jobCollection;
+                std::chrono::seconds avgFinishTime,remainingTime;
+                std::chrono::high_resolution_clock::time_point ETA;
                 std::string directoryPath;
                 unsigned runningCounter,finishedCounter,totalJobs;
 

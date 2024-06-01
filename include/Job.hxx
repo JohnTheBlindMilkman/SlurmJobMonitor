@@ -8,7 +8,7 @@
     #include <deque>
     #include <chrono>
     #include <iomanip>
-    #include <ostream>
+    #include <iostream>
 
     namespace SJM
     {
@@ -27,38 +27,63 @@
 
                 bool Evaluate();
                 std::chrono::seconds CalcAverage(const std::deque<std::chrono::seconds> &);
-                std::string GetPercentage() const;
+                unsigned CalcAverage(const std::deque<unsigned> &);
+                int GetPercentage() const;
+                std::chrono::seconds GetRunTime() const;
+                std::chrono::seconds GetRemainingTime() const;
                 std::string GetJobId() const;
                 std::string GetTaskId() const;
+                std::string GetErrorMsg() const;
                 AnalysisState State() const;
                 std::string_view PrintState() const;
+                std::string PrintPercentage() const;
                 std::string PrintRemainingTime();
                 std::string PrintElapsedTime();
                 std::string PrintEtaTime();
+                std::string PrintRunTime();
 
             private:
                 AnalysisState EvalState();
                 std::stringstream MakeTime(std::chrono::seconds);
+                std::chrono::seconds ReadTime(const std::string &&);
                 void CalculateTime();
 
                 static constexpr std::size_t maxQueueSize{5};
+                static constexpr std::string_view realTimePrefix{"real	"};
+                static constexpr int maxErrorCount{5};
 
                 bool hasStarted,hasFinished;
-                int currentPercentage,lastPercentage;
-                std::string fileContents,percent,jobId,taskId,fileName;
+                int currentPercentage,lastPercentage,avgPercentage,errorCounter;
+                std::string fileContents,percent,jobId,taskId,fileName,errorMessage;
                 AnalysisState state;
-                std::chrono::steady_clock::time_point currentTime,lastTime;
-                std::chrono::seconds avgElapsedTime,ETA,remainigTime;
+                std::chrono::system_clock::time_point currentTime,lastTime;
+                std::chrono::seconds avgElapsedTime,ETA,remainigTime,realRunTime;
                 std::deque<std::chrono::seconds> elapsedQueue;
+                std::deque<unsigned> progressQueue;
         };
         inline std::chrono::seconds Job::CalcAverage(const std::deque<std::chrono::seconds> &queue)
         {
             return std::accumulate(queue.begin(),queue.end(),std::chrono::seconds(0)) / queue.size();
         }
 
-        inline std::string Job::GetPercentage() const
+        inline unsigned Job::CalcAverage(const std::deque<unsigned> &queue)
         {
-            return std::to_string(currentPercentage);
+            return std::accumulate(queue.begin(),queue.end(),0) / queue.size();
+        }
+
+        inline int Job::GetPercentage() const
+        {
+            return currentPercentage;
+        }
+
+        inline std::chrono::seconds Job::GetRunTime() const
+        {
+            return realRunTime;
+        }
+
+        inline std::chrono::seconds Job::GetRemainingTime() const
+        {
+            return remainigTime;
         }
 
         inline std::string Job::GetJobId() const
@@ -69,6 +94,11 @@
         inline std::string Job::GetTaskId() const
         {
             return taskId;
+        }
+
+        inline std::string Job::GetErrorMsg() const
+        {
+            return errorMessage;
         }
 
         inline Job::AnalysisState Job::State() const
@@ -94,6 +124,10 @@
             }
             return "";
         }
+        inline std::string Job::PrintPercentage() const
+        {
+            return std::to_string(currentPercentage);
+        }
         inline std::string Job::PrintRemainingTime()
         {
             return MakeTime(remainigTime).str();
@@ -105,6 +139,10 @@
         inline std::string Job::PrintEtaTime()
         {
             return MakeTime(ETA).str();
+        }
+        inline std::string Job::PrintRunTime()
+        {
+            return MakeTime(realRunTime).str();
         }
     } // namespace SJM
     
