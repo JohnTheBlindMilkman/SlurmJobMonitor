@@ -91,11 +91,14 @@ namespace SJM
         FileHandler file(fileName);
         fileContents = file.ReadFile();
 
-        if (fileContents.find(GlobalConstants::beginingExpression) != std::string::npos)
+        if (fileContents.find(beginingExpression) != std::string::npos)
             hasStarted = true;
 
-        if (fileContents.find(GlobalConstants::endingExpression) != std::string::npos && hasStarted)
+        if (fileContents.find(endingExpression) != std::string::npos && hasStarted)
             hasFinished = true;
+
+        if (errorCounter >= maxErrorCount)
+            return Job::AnalysisState::Error;
 
         if (hasStarted && hasFinished)
         {
@@ -103,9 +106,9 @@ namespace SJM
         }
         else if(hasStarted && !hasFinished)
         {
-                std::size_t percentPos = fileContents.rfind(GlobalConstants::percentExpression);
+                std::size_t percentPos = fileContents.rfind(percentExpression);
                 if (percentPos != std::string::npos)
-                    percent = fileContents.substr(percentPos - GlobalConstants::substrOffset,GlobalConstants::substrLength);
+                    percent = fileContents.substr(percentPos - substrOffset,substrLength);
 
                 return Job::AnalysisState::Started;
         }
@@ -117,9 +120,6 @@ namespace SJM
         {
             return Job::AnalysisState::Error;
         }
-
-        if (errorCounter >= maxErrorCount)
-            return Job::AnalysisState::Error;
     }
 
     std::stringstream Job::MakeTime(std::chrono::seconds sec)
@@ -206,7 +206,7 @@ namespace SJM
         avgElapsedTime = CalcAverage(elapsedQueue);
         avgPercentage = CalcAverage(progressQueue);
 
-        (avgPercentage > 0) ? ETA = avgElapsedTime * GlobalConstants::maxPercentage / avgPercentage : ETA = std::chrono::seconds(0);
+        (avgPercentage > 0) ? ETA = avgElapsedTime * maxPercentage / avgPercentage : ETA = std::chrono::seconds(0);
         remainigTime = abs(ETA - avgElapsedTime);
     }
 

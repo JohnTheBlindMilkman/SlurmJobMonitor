@@ -36,7 +36,7 @@ if(SJM_ENABLE_DOXYGEN)
   SlurmJobMonitor_enable_doxygen("awesome-sidebar")
 endif()
 
-add_compile_options(-Wall -Wextra -Wpedantic)
+add_compile_options(-Wall -Wextra -Wpedantic -Wshadow -Wnon-virtual-dtor -Wold-style-cast)
 
 add_library(base 
 include/FileHandler.hxx

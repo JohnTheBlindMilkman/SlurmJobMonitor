@@ -11,7 +11,10 @@ namespace SJM
             std::exit(1);
         }
         for (const auto &entry : std::filesystem::directory_iterator(directoryPath))
+        {
+            (void)entry; // does nothing; I put this to supress the warning about signum being unused
             ++counter;
+        }
 
         if (counter == 0)
         {
@@ -103,6 +106,8 @@ namespace SJM
                 
             case Job::AnalysisState::Error :
                 return ftxui::Color::Red;
+            default:
+                return ftxui::Color::Default;
         }
     }
 

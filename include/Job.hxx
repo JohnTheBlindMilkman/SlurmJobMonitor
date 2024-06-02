@@ -2,7 +2,6 @@
     #define Job_hxx
 
     #include "FileHandler.hxx"
-    #include "GlobalConstants.hxx"
 
     #include <numeric>
     #include <deque>
@@ -50,6 +49,12 @@
 
                 static constexpr std::size_t maxQueueSize{5};
                 static constexpr std::string_view realTimePrefix{"real	"};
+                static constexpr std::string_view beginingExpression{"with entries ="};
+                static constexpr std::string_view endingExpression{"Finished DST processing"};
+                static constexpr std::string_view percentExpression{" %"};
+                static constexpr int substrOffset{3};
+                static constexpr int substrLength{3};
+                static constexpr int maxPercentage{99};
                 static constexpr int maxErrorCount{5};
 
                 bool hasStarted,hasFinished;
