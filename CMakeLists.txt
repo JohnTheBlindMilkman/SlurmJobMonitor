@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.1...3.29)
 project(
     SlurmJobMonitor
-    VERSION 1.2.1
+    VERSION 1.2.2
     LANGUAGES CXX)
 
 include(FetchContent)
@@ -29,18 +29,17 @@ if(NOT ftxui_POPULATED)
   add_subdirectory(${ftxui_SOURCE_DIR} ${ftxui_BINARY_DIR} EXCLUDE_FROM_ALL)
 endif()
 
-set(CMAKE_CXX_STANDARD 20) # this is a stupid fix for my stupid InteliSense so knows that I'm using the stupid c++20 standard
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
-
 if(SJM_ENABLE_DOXYGEN)
   SlurmJobMonitor_enable_doxygen("awesome-sidebar")
 endif()
+
+set(CMAKE_CXX_STANDARD 20) # this is a stupid fix for my stupid InteliSense so knows that I'm using the stupid c++20 standard
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 
 add_compile_options(-Wall -Wextra -Wpedantic -Wshadow -Wnon-virtual-dtor -Wold-style-cast)
 
 add_library(base 
 include/FileHandler.hxx
-include/GlobalConstants.hxx
 include/Job.hxx
 include/JobManager.hxx
 src/FileHandler.cxx

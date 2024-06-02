@@ -1,3 +1,13 @@
+/**
+ * @file main.cxx
+ * @author Jędrzej Kołaś (jedrzej.kolas.dokt@pw.edu.pl)
+ * @brief Main file of the program
+ * @version 1.2.2
+ * @date 2024-06-02
+ * 
+ * @copyright Copyright (c) 2024
+ * 
+ */
 #include "argparse/argparse.hpp"
 
 #include "JobManager.hxx"
@@ -7,6 +17,11 @@
 #include <thread>
 #include <chrono>
 
+/**
+ * @brief Small helper function for gracefully exiting the program when Ctrl+C is pressed
+ * 
+ * @param signum 
+ */
 void terminateProgram(int signum)
 {
     (void)signum; // does nothing; I put this to supress the warning about signum being unused
