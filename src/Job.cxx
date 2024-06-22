@@ -68,7 +68,7 @@ namespace SJM
                 {
                     currentPercentage = lastPercentage;
                     ++errorCounter;
-                    errorMessage += errorCounter + "unable to parse current percentage, ";
+                    errorMessage += std::to_string(errorCounter) + " unable to parse current percentage, ";
                 }
 
                 currentTime = std::chrono::system_clock::now();
@@ -169,7 +169,7 @@ namespace SJM
                 {
                     minutes = 0.;
                     ++errorCounter;
-                    errorMessage += errorCounter + "unable to parse minutes, ";
+                    errorMessage += std::to_string(errorCounter) + " unable to parse minutes, ";
                 }
                 time += seconds(static_cast<int>(minutes)*60);
             }

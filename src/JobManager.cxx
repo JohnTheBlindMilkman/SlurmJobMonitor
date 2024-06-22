@@ -34,22 +34,23 @@ namespace SJM
         for (const auto &entry : std::filesystem::directory_iterator(directoryPath))
         {
             path = entry.path();
+            // quite a lot of if statements
             if (path.find(runningJobPostfix) != std::string::npos)
             {
                 ++outFile;
-                if (jobCollection.find(path) == jobCollection.end())
-                {
-                    jobCollection.emplace(path,Job(path));
-                }
-                jobCollection[path].Evaluate();
             }
             else if (path.find(finishedJobPostfix) != std::string::npos)
             {
                 ++logFile;
-                if (jobCollection.find(path) == jobCollection.end())
-                {
-                    jobCollection.emplace(path,Job(path));
-                }
+            }
+
+            if (jobCollection.find(path) == jobCollection.end())
+            {
+                jobCollection.emplace(path,Job(path));
+            }
+            if (jobCollection[path].State() != Job::AnalysisState::Finished || jobCollection[path].State() != Job::AnalysisState::Error)
+            {
+                jobCollection[path].Evaluate();
             }
         }
 
@@ -114,7 +115,6 @@ namespace SJM
     ftxui::Elements JobManager::CreateStatusBox()
     {
         ftxui::Elements elems;
-        
         for (const auto &jobState : CreateJobStateVector())
         {
             elems.push_back(ftxui::text("   ") | ftxui::bgcolor(GetColorByStatus(jobState)));
@@ -150,9 +150,9 @@ namespace SJM
         {
             if (job.State() == Job::AnalysisState::Error)
             {
-                vec.push_back(ftxui::hbox(
-                    ftxui::text(job.GetJobId() + job.GetTaskId() + " = ") | ftxui::color(ftxui::Color::Orange1),
-                    ftxui::text(job.GetErrorMsg())
+                vec.push_back(ftxui::vbox(
+                    ftxui::text(job.GetJobId() + ":" + job.GetTaskId()) | ftxui::color(ftxui::Color::Orange1),
+                    ftxui::paragraph(job.GetErrorMsg())
                 ));
             }
         }
@@ -235,7 +235,10 @@ namespace SJM
         errors = std::move(CreateJobErrorMsgVector());
         if (errors.size() > 0)
         {
-            contents.push_back(ftxui::vbox(std::move(errors)) | ftxui::border);
+            contents.push_back(ftxui::vbox(
+                ftxui::text("Errors") | ftxui::center | ftxui::color(ftxui::Color::Orange1),
+                ftxui::separator(),
+                std::move(errors)) | ftxui::border);
         }
 
         if (full)
