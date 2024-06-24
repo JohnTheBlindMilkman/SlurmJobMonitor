@@ -5,11 +5,13 @@ project(
     LANGUAGES CXX)
 
 include(FetchContent)
+include(CTest)
 include(cmake/Doxygen.cmake)
 
 add_subdirectory(configuredFiles)
 
 option(SJM_ENABLE_DOXYGEN "Enable doxygen" OFF)
+option(SJM_ENABLE_TESTS "Enable tests" ON)
 
 set(FETCHCONTENT_UPDATES_DISCONNECTED TRUE)
 FetchContent_Declare(
@@ -31,6 +33,11 @@ endif()
 
 if(SJM_ENABLE_DOXYGEN)
   SlurmJobMonitor_enable_doxygen("awesome-sidebar")
+endif()
+
+if(SJM_ENABLE_TESTS)
+  add_subdirectory(tests)
+  enable_testing()
 endif()
 
 set(CMAKE_CXX_STANDARD 20) # this is a stupid fix for my stupid InteliSense so knows that I'm using the stupid c++20 standard

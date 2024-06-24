@@ -18,6 +18,7 @@
     #include <chrono>
     #include <iomanip>
     #include <iostream>
+    #include <regex>
 
     namespace SJM
     {
@@ -192,6 +193,7 @@
                 static constexpr std::string_view beginingExpression{"with entries ="};
                 static constexpr std::string_view endingExpression{"Finished DST processing"};
                 static constexpr std::string_view percentExpression{" %"};
+                //static constexpr std::string realTime{"[0-9]*([.][0-9]+)?"};
                 static constexpr int substrOffset{3};
                 static constexpr int substrLength{3};
                 static constexpr int maxPercentage{99};

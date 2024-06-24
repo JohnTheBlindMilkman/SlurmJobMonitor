@@ -149,46 +149,40 @@ namespace SJM
     {
         using namespace std::chrono;
 
+        float minutes,sec;
         seconds time(0);
-        const std::size_t charSize(2);
+        std::smatch matches;
+        const std::regex reg("[0-9]+([.][0-9]+)?");
         std::size_t pos1 = str.find(realTimePrefix);
         if (pos1 != std::string::npos)
         {
             std::string sstr = str.substr(pos1 + realTimePrefix.size(),20);
+            std::regex_search(sstr,matches,reg);
 
-            std::size_t posM = sstr.find("m");
-            std::size_t posS = sstr.find("s");
-            if (posM != std::string::npos)
+            try
             {
-                float minutes;
-                try
-                {
-                    minutes = std::stof(sstr.substr(0,posM));
-                }
-                catch(const std::exception& e)
-                {
-                    minutes = 0.;
-                    ++errorCounter;
-                    errorMessage += std::to_string(errorCounter) + " unable to parse minutes, ";
-                }
-                time += seconds(static_cast<int>(minutes)*60);
+                minutes = std::stof(matches[0]);
             }
-            if (posS != std::string::npos)
+            catch(const std::exception& e)
             {
-                float sec;
-                try
-                {
-                    sec = std::stof(sstr.substr(posM + charSize,posS - posM - charSize));
-                }
-                catch(const std::exception& e)
-                {
-                    sec = 0.;
-                    ++errorCounter;
-                    errorMessage += errorCounter + "unable to parse seconds, ";
-                }
-                
-                time += seconds(static_cast<int>(sec));
+                minutes = 0.;
+                ++errorCounter;
+                errorMessage += std::to_string(errorCounter) + " unable to parse minutes, ";
             }
+            time += seconds(static_cast<int>(minutes)*60);
+
+            try
+            {
+                sec = std::stof(matches[1]);
+            }
+            catch(const std::exception& e)
+            {
+                sec = 0.;
+                ++errorCounter;
+                errorMessage += errorCounter + "unable to parse seconds, ";
+            }
+            
+            time += seconds(static_cast<int>(sec));
         }
         return time;
     }
