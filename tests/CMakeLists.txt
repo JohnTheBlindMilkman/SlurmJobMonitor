@@ -9,6 +9,6 @@ if(SJM_ENABLE_TESTS)
     target_compile_features(parseOutFile  PRIVATE cxx_std_20)
 
     add_test(NAME parseLogFile COMMAND parseLogFile "${CMAKE_SOURCE_DIR}/tests/apr12ana_all_11.log")
-    add_test(NAME parseOutFile COMMAND parseOutFile "${CMAKE_SOURCE_DIR}/tests/slurm12345_101.out")
+    add_test(NAME parseOutFile COMMAND parseOutFile "${CMAKE_SOURCE_DIR}/tests/slurm-12345_101.out")
 
 endif()

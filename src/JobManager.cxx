@@ -4,23 +4,18 @@ namespace SJM
 {
     JobManager::JobManager(std::string dirPath,unsigned njobs) : directoryPath(dirPath),runningCounter(0),finishedCounter(0),totalJobs(njobs)
     {
-        int counter = 0;
         if (! std::filesystem::is_directory(directoryPath))
         {
             std::cerr << "Provided path " << directoryPath << " is not a directory\n";
             std::exit(1);
         }
-        for (const auto &entry : std::filesystem::directory_iterator(directoryPath))
-        {
-            (void)entry; // does nothing; I put this to supress the warning about signum being unused
-            ++counter;
-        }
+        std::tie(runningCounter,finishedCounter) = DirecotryContents(directoryPath);
 
-        if (counter == 0)
+        if (runningCounter == 0 && finishedCounter == 0)
         {
             std::cerr << "Directory " << directoryPath << " is empty\n";
             std::exit(1);
-        }
+        }        
     }
 
     JobManager::~JobManager()
@@ -29,20 +24,10 @@ namespace SJM
     bool JobManager::UpdateJobs()
     {
         std::string path;
-        unsigned outFile = 0, logFile = 0;
 
         for (const auto &entry : std::filesystem::directory_iterator(directoryPath))
         {
             path = entry.path();
-            // quite a lot of if statements
-            if (path.find(runningJobPostfix) != std::string::npos)
-            {
-                ++outFile;
-            }
-            else if (path.find(finishedJobPostfix) != std::string::npos)
-            {
-                ++logFile;
-            }
 
             if (jobCollection.find(path) == jobCollection.end())
             {
@@ -54,12 +39,10 @@ namespace SJM
             }
         }
 
-        runningCounter = outFile;
-        finishedCounter = logFile;
-
+        std::tie(runningCounter,finishedCounter) = DirecotryContents(directoryPath);
         std::tie(remainingTime,avgFinishTime,ETA) = CalculateTimeLeft();
 
-        return (outFile > 0) ? true : false;
+        return (finishedCounter < totalJobs) ? true : false;
     }
 
     ftxui::Elements JobManager::CreateTable()
@@ -179,8 +162,10 @@ namespace SJM
             }
         }
 
-        prevRunTime = prevRunTime/finishedCounter; // how long (on average) did finished jobs run
-        futureRunTime = prevRunTime * ((totalJobs-finishedCounter-runningCounter)/runningCounter); // estimate how long the jobs which have not yet strted will take
+        if (finishedCounter > 0)
+            prevRunTime = prevRunTime/finishedCounter; // how long (on average) did finished jobs run
+        if (runningCounter > 0)
+            futureRunTime = prevRunTime * ((totalJobs-finishedCounter-runningCounter)/runningCounter); // estimate how long the jobs which have not yet strted will take
         totRemainingTime = prevRunTime+largestCurrentRemainingTime+futureRunTime;
 
         return std::make_tuple(totRemainingTime,prevRunTime,std::chrono::system_clock::now() + totRemainingTime);
@@ -207,6 +192,32 @@ namespace SJM
         sstr << std::setw(2) << m.count() << "m:" << std::setw(2) << s.count() << 's';
         sstr.fill(fill);
         return sstr;
+    }
+    /**
+     * @brief Count number of *.out and *.log files in specified directory
+     * 
+     * @param dirPath path to the direcotry
+     * @return std::pair<unsigned,unsigned> 
+     */
+    std::pair<unsigned,unsigned> JobManager::DirecotryContents(const std::string &dirPath) const
+    {
+       std::string path;
+        unsigned outFile = 0, logFile = 0;
+
+        for (const auto &entry : std::filesystem::directory_iterator(dirPath))
+        {
+            path = entry.path();
+            if (path.find(runningJobPostfix) != std::string::npos)
+            {
+                ++outFile;
+            }
+            else if (path.find(finishedJobPostfix) != std::string::npos)
+            {
+                ++logFile;
+            } 
+        }
+
+        return std::make_pair(outFile,logFile);
     }
 
     ftxui::Element JobManager::PrintStatus(bool minimal, bool full)

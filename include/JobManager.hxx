@@ -72,6 +72,7 @@
                  * @return std::stringstream 
                  */
                 std::stringstream MakeTime(std::chrono::seconds);
+                std::pair<unsigned,unsigned> DirecotryContents(const std::string &dirPath) const;
 
                 std::map<std::string,Job> jobCollection;
                 std::chrono::seconds avgFinishTime,remainingTime;

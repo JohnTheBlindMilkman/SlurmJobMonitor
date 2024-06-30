@@ -40,7 +40,8 @@ int main(int argc, char *argv[])
     group.add_argument("-m","--minimal").help("Print minimal amount of information").flag();
     group.add_argument("-f","--full").help("Print all available information").flag();
 
-    parser.add_description("Slurm Job Monitor (" + std::string(SJM::Config::projectVersion) + ") - Monitoring script for standard HADES DST macro execution on SLURM batchfatm at GSI");
+    parser.add_description("Slurm Job Monitor (" + std::string(SJM::Config::projectVersion) + 
+        ") - Monitoring script for standard HADES DST macro execution on the SLURM batchfarm at GSI");
 
     try 
     {

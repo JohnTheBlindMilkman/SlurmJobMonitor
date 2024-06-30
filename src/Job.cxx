@@ -94,7 +94,7 @@ namespace SJM
         if (fileContents.find(beginingExpression) != std::string::npos)
             hasStarted = true;
 
-        if (fileContents.find(endingExpression) != std::string::npos && hasStarted)
+        if ((fileContents.find(endingExpression) != std::string::npos || currentPercentage == maxPercentage) && hasStarted)
             hasFinished = true;
 
         if (errorCounter >= maxErrorCount)
@@ -158,7 +158,6 @@ namespace SJM
         {
             std::string sstr = str.substr(pos1 + realTimePrefix.size(),20);
             std::regex_search(sstr,matches,reg);
-
             try
             {
                 minutes = std::stof(matches[0]);
@@ -171,9 +170,11 @@ namespace SJM
             }
             time += seconds(static_cast<int>(minutes)*60);
 
+            std::string ssstr = matches.suffix().str();
+            std::regex_search(ssstr,matches,reg);
             try
             {
-                sec = std::stof(matches[1]);
+                sec = std::stof(matches[0]);
             }
             catch(const std::exception& e)
             {
