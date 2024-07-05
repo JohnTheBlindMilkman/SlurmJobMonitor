@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
 
     parser.add_argument("refresh").help("Time (in seconds) of the refresh period").required().scan<'i',unsigned>();
     parser.add_argument("--user","-u").help("Username for whom the jobs should be displayed. Default is the callee.");
-    parser.add_argument("--jobs","-j").help("List of jobs you want to be monitored. Default is all jobs started since 00:00:00 of the current day.").nargs(1,10);
+    parser.add_argument("--jobs","-j").help("List of jobs you want to be monitored. Default is all jobs started since 00:00:00 of the current day.").nargs(1,10).scan<'i',unsigned long>();
 
     parser.add_description("Slurm Job Monitor (" + std::string(SJM::Config::projectVersion) + 
         ") - Monitoring script for the SLURM batchfarm at GSI");
