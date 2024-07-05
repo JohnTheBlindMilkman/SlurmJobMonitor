@@ -2,80 +2,120 @@
 
 namespace SJM
 {
-    JobManager::JobManager(std::string dirPath,unsigned njobs) : directoryPath(dirPath),runningCounter(0),finishedCounter(0),totalJobs(njobs)
+    void from_json(const nlohmann::json &j,Job &job)
     {
-        if (! std::filesystem::is_directory(directoryPath))
-        {
-            std::cerr << "Provided path " << directoryPath << " is not a directory\n";
-            std::exit(1);
-        }
-        std::tie(runningCounter,finishedCounter) = DirecotryContents(directoryPath);
-
-        if (runningCounter == 0 && finishedCounter == 0)
-        {
-            std::cerr << "Directory " << directoryPath << " is empty\n";
-            std::exit(1);
-        }        
+        job.currentState = j["state"]["current"].get<std::vector<std::string> >().at(0);
+        job.elapsedTime = j["time"]["elapsed"].get<long unsigned>();
+        job.endTime = j["time"]["end"].get<long unsigned>();
+        job.startTime = j["time"]["start"].get<long unsigned>();
+        job.maxTime = j["time"]["eligible"].get<long unsigned>();
+        job.submissionTime = j["time"]["eligible"].get<long unsigned>();
+        job.exitCodeStatus = j["exit_code"]["status"].get<std::vector<std::string> >().at(0);
+        job.flags = j["flags"].get<std::vector<std::string> >();
+        job.jobId = j["array"]["job_id"].get<long unsigned>();
+        job.maxMemory = j["required"]["memory_per_node"]["number"].get<long unsigned>();
+        job.node = j["nodes"].get<std::string>();
+        job.partition = j["partition"].get<std::string>();
+        job.priority = j["priority"]["number"].get<long unsigned>();
+        job.qos = j["qos"].get<std::string>();
+        job.stateReason = j["state"]["reason"].get<std::string>();
+        job.taskId = j["array"]["task_id"]["number"].get<long unsigned>();
+        if (job.currentState == "COMPLETED")
+            job.usedMemory = j["steps"].at(0)["tres"]["requested"]["average"].at(1)["count"].get<long unsigned>();
     }
 
-    JobManager::~JobManager()
-    {}
+
+    JobManager::JobManager(const std::optional<std::string> &username,const std::optional<std::vector<unsigned long> > &jobIds) noexcept : 
+    m_userName(username), 
+    m_jobIdsVector(jobIds),
+    m_stateMap(
+        {{State::Pending,"PENDING"},
+        {State::Running,"RUNNING"},
+        {State::Completed,"COMPLETED"},
+        {State::Failed,"FAILED"},
+        {State::Timeout,"N/A"},
+        {State::Resizing,"N/A"},
+        {State::Deadline,"N/A"},
+        {State::NodeFail,"N/A"},}
+    )
+    {      
+    }
 
     bool JobManager::UpdateJobs()
     {
-        std::string path;
+        ExecuteCommand(m_userName,m_jobIdsVector);
+        m_jobCollection = FromJsonToJobVector(ReadJson(m_pathToJson));
 
-        for (const auto &entry : std::filesystem::directory_iterator(directoryPath))
-        {
-            path = entry.path();
+        // this is not optimal, but I want things to be more explicit, and not being initialised around in the background
+        m_numberOfJobs = m_jobCollection.size();
+        m_pendingCounter = CountJobsByState(m_jobCollection,State::Pending);
+        m_runningCounter = CountJobsByState(m_jobCollection,State::Running);
+        m_finishedCounter = CountJobsByState(m_jobCollection,State::Completed);
+        m_failedCounter = CountJobsByState(m_jobCollection,State::Failed);
+        m_timeoutCounter = CountJobsByState(m_jobCollection,State::Timeout);
+        m_resizingCounter = CountJobsByState(m_jobCollection,State::Resizing);
+        m_deadlineCounter = CountJobsByState(m_jobCollection,State::Deadline);
+        m_nodeFailCounter = CountJobsByState(m_jobCollection,State::NodeFail);
 
-            if (jobCollection.find(path) == jobCollection.end())
-            {
-                jobCollection.emplace(path,Job(path));
-            }
-            if (jobCollection[path].State() != Job::AnalysisState::Finished || jobCollection[path].State() != Job::AnalysisState::Error)
-            {
-                jobCollection[path].Evaluate();
-            }
-        }
+        (m_finishedCounter > 0) ? hasJobsWithFinishedState = true : hasJobsWithFinishedState = false;
 
-        std::tie(runningCounter,finishedCounter) = DirecotryContents(directoryPath);
-        std::tie(remainingTime,avgFinishTime,ETA) = CalculateTimeLeft();
-
-        return (finishedCounter < totalJobs) ? true : false;
+        return ((m_runningCounter + m_pendingCounter) > 0) ? true : false;
     }
 
-    ftxui::Elements JobManager::CreateTable()
+    std::string JobManager::ParseVector(const std::vector<unsigned long> &vec) const noexcept
     {
-        bool flip = true;
-        ftxui::Color titleColor = ftxui::Color::Default;
-        
-        ftxui::Elements tableContent;
-        std::vector<Job> jobVec;
-        for(auto &[key,job] : jobCollection) // passing map to vector for sorting 
-            if (job.State() == Job::AnalysisState::Started)
-                jobVec.push_back(job);
-        std::sort(jobVec.begin(),jobVec.end(),[](const Job &j1, const Job &j2){return (j1.GetPercentage() > j2.GetPercentage());});
+        std::string outputCommand;
+        for (const auto &elem : vec)
+            outputCommand += " " + elem;
 
-        for(auto &job : jobVec)
-        {
-            tableContent.push_back(
-                ftxui::window(
-                    ftxui::text(job.GetJobId() + ":" + job.GetTaskId()) | ftxui::center | ftxui::color(titleColor),
-                    ftxui::vbox(
-                        ftxui::text(job.PrintPercentage() + " %"),
-                        ftxui::text(job.PrintRemainingTime())
-                    )
-                )
-            );
-            flip ? titleColor = ftxui::Color::Cyan : titleColor = ftxui::Color::Default;
-            flip = !flip;
-        }
-
-        return tableContent;
+        return outputCommand;
     }
 
-    ftxui::Color JobManager::GetColorByStatus(const Job::AnalysisState &state) const
+    std::string JobManager::ExecuteCommand(const std::optional<std::string> &username,const std::optional<std::vector<unsigned long> > &jobIds)
+    {
+        std::string userFlag = (username.has_value()) ? "-u " + username.value() + " " : "";
+        std::string jobidFlag = (jobIds.has_value()) ? "-j " + ParseVector(jobIds.value()) : "-S"; // Comment from "man sacct": -S: Select jobs eligible after this time. Default is 00:00:00 of the current day
+
+        std::string command = "sacct " + userFlag + jobidFlag + " --json > sacct.json";
+        std::system(command.data());
+
+        return command;
+    }
+
+    nlohmann::json JobManager::ReadJson(const std::string_view &strView)
+    {
+        std::ifstream f(strView.data());
+        nlohmann::json data;
+        try
+        {
+            data = nlohmann::json::parse(f);
+        }
+        catch (nlohmann::json::parse_error& ex)
+        {
+            std::cerr << "parse error at byte " << ex.byte << std::endl;
+        }
+
+        return data;
+    }
+
+    std::vector<Job> JobManager::FromJsonToJobVector(const nlohmann::json &j)
+    {
+        std::vector<Job> jobVec;
+        for (const auto &job : j["jobs"]) // I should check somewhere if I get any jobs at all
+        {
+            jobVec.push_back(job.get<Job>());
+        }
+
+        return jobVec;
+    }
+
+    std::size_t JobManager::CountJobsByState(const std::vector<Job> &vec, State state) const
+    {
+        std::string strState = m_stateMap.at(state);
+        return std::count_if(vec.begin(),vec.end(),[strState](const Job &j){return strState == j.currentState;});
+    }
+
+    /* ftxui::Color JobManager::GetColorByStatus(const Job::AnalysisState &state) const
     {
         switch (state)
         {
@@ -104,123 +144,10 @@ namespace SJM
         }
 
         return elems;
-    }
+    } */
     
-    std::vector<Job::AnalysisState> JobManager::CreateJobStateVector()
-    {
-        auto jobIterator = jobCollection.begin();
-        std::vector<Job::AnalysisState> stateVec;
 
-        for (unsigned tot = 0; tot < totalJobs; ++tot)
-        {
-            if (tot < jobCollection.size())
-            {
-                stateVec.push_back(jobIterator->second.State());
-                jobIterator++;
-            }
-            else
-            {
-                stateVec.push_back(Job::AnalysisState::NotStarted);
-            }
-        }
-        return stateVec;
-    }
-
-    ftxui::Elements JobManager::CreateJobErrorMsgVector()
-    {
-        ftxui::Elements vec;
-        for (const auto &[key,job] : jobCollection)
-        {
-            if (job.State() == Job::AnalysisState::Error)
-            {
-                vec.push_back(ftxui::vbox(
-                    ftxui::text(job.GetJobId() + ":" + job.GetTaskId()) | ftxui::color(ftxui::Color::Orange1),
-                    ftxui::paragraph(job.GetErrorMsg())
-                ));
-            }
-        }
-
-        return vec;
-    }
-
-    std::tuple<std::chrono::seconds,std::chrono::seconds,std::chrono::high_resolution_clock::time_point> JobManager::CalculateTimeLeft() const
-    {
-        std::chrono::seconds prevRunTime = std::chrono::seconds(0),
-            futureRunTime = std::chrono::seconds(0),
-            largestCurrentRemainingTime = std::chrono::seconds(0),
-            totRemainingTime = std::chrono::seconds(0);
-        for (const auto &[key,job] : jobCollection)
-        {
-            if (job.State() == Job::AnalysisState::Finished)
-            {
-                prevRunTime += job.GetRunTime();
-            }
-            else if (job.State() == Job::AnalysisState::Started) // find largest currenlty runinig remaining time
-            {
-                if (largestCurrentRemainingTime <= job.GetRemainingTime())
-                    largestCurrentRemainingTime = job.GetRemainingTime();
-            }
-        }
-
-        if (finishedCounter > 0)
-            prevRunTime = prevRunTime/finishedCounter; // how long (on average) did finished jobs run
-        if (runningCounter > 0)
-            futureRunTime = prevRunTime * ((totalJobs-finishedCounter-runningCounter)/runningCounter); // estimate how long the jobs which have not yet strted will take
-        totRemainingTime = prevRunTime+largestCurrentRemainingTime+futureRunTime;
-
-        return std::make_tuple(totRemainingTime,prevRunTime,std::chrono::system_clock::now() + totRemainingTime);
-    }
-
-    std::stringstream JobManager::MakeTime(std::chrono::seconds sec)
-    {
-        std::stringstream sstr;
-        using namespace std::chrono;
-        using days = duration<int, std::ratio<86400>>;
-        char fill = sstr.fill();
-        sstr.fill('0');
-        auto d = duration_cast<days>(sec);
-        sec -= d;
-        auto h = duration_cast<hours>(sec);
-        sec -= h;
-        auto m = duration_cast<minutes>(sec);
-        sec -= m;
-        auto s = duration_cast<seconds>(sec);
-        if (d.count() > 0)
-            sstr << std::setw(2) << d.count() << "d:";
-        if (h.count() > 0)
-            sstr << std::setw(2) << h.count() << "h:";
-        sstr << std::setw(2) << m.count() << "m:" << std::setw(2) << s.count() << 's';
-        sstr.fill(fill);
-        return sstr;
-    }
-    /**
-     * @brief Count number of *.out and *.log files in specified directory
-     * 
-     * @param dirPath path to the direcotry
-     * @return std::pair<unsigned,unsigned> 
-     */
-    std::pair<unsigned,unsigned> JobManager::DirecotryContents(const std::string &dirPath) const
-    {
-       std::string path;
-        unsigned outFile = 0, logFile = 0;
-
-        for (const auto &entry : std::filesystem::directory_iterator(dirPath))
-        {
-            path = entry.path();
-            if (path.find(runningJobPostfix) != std::string::npos)
-            {
-                ++outFile;
-            }
-            else if (path.find(finishedJobPostfix) != std::string::npos)
-            {
-                ++logFile;
-            } 
-        }
-
-        return std::make_pair(outFile,logFile);
-    }
-
-    ftxui::Element JobManager::PrintStatus(bool minimal, bool full)
+    /* ftxui::Element JobManager::PrintStatus(bool minimal, bool full)
     {
         ftxui::Elements contents,errors;
         const std::time_t ETAtime = std::chrono::system_clock::to_time_t(ETA);
@@ -277,6 +204,6 @@ namespace SJM
                 ftxui::hflow(std::move(CreateStatusBox()))) | ftxui::border);
         }
         return ftxui::vbox(std::move(contents));
-    }
+    } */
 
 } // namespace SJM

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.1...3.29)
 project(
     SlurmJobMonitor
-    VERSION 1.2.2
+    VERSION 2.0.0
     LANGUAGES CXX)
 
 include(FetchContent)
@@ -11,7 +11,7 @@ include(cmake/Doxygen.cmake)
 add_subdirectory(configuredFiles)
 
 option(SJM_ENABLE_DOXYGEN "Enable doxygen" OFF)
-option(SJM_ENABLE_TESTS "Enable tests" ON)
+option(SJM_ENABLE_TESTS "Enable tests" OFF)
 
 set(FETCHCONTENT_UPDATES_DISCONNECTED TRUE)
 FetchContent_Declare(
@@ -23,8 +23,13 @@ FetchContent_Declare(
     argparse
     GIT_REPOSITORY https://github.com/p-ranav/argparse.git
 )
+FetchContent_Declare(
+  json
+  GIT_REPOSITORY https://github.com/nlohmann/json.git
+)
 
 FetchContent_MakeAvailable(argparse)
+FetchContent_MakeAvailable(json)
 FetchContent_GetProperties(ftxui)
 if(NOT ftxui_POPULATED)
   FetchContent_Populate(ftxui)
@@ -46,16 +51,14 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 add_compile_options(-Wall -Wextra -Wpedantic -Wshadow -Wnon-virtual-dtor -Wold-style-cast)
 
 add_library(base 
-include/FileHandler.hxx
-include/Job.hxx
+#include/Graphics.hxx
 include/JobManager.hxx
-src/FileHandler.cxx
-src/Job.cxx
+#src/Graphics.cxx
 src/JobManager.cxx)
 target_include_directories(base PUBLIC ${ftxui_SOURCE_DIR}/include)
 target_include_directories(base PUBLIC ${CMAKE_SOURCE_DIR}/include)
 
 add_executable(monitor main.cxx)
 
-target_link_libraries(monitor PRIVATE base PRIVATE argparse PRIVATE ftxui::screen PRIVATE ftxui::dom )
+target_link_libraries(monitor PRIVATE base PRIVATE argparse PRIVATE ftxui::screen PRIVATE ftxui::dom PRIVATE nlohmann_json::nlohmann_json)
 target_compile_features(monitor PRIVATE cxx_std_20)

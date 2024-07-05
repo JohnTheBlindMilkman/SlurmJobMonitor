@@ -16,6 +16,7 @@
 #include "signal.h"
 #include <thread>
 #include <chrono>
+#include <optional>
 
 /**
  * @brief Small helper function for gracefully exiting the program when Ctrl+C is pressed
@@ -33,15 +34,12 @@ int main(int argc, char *argv[])
 {    
     argparse::ArgumentParser parser("monitor",std::string(SJM::Config::projectVersion));
 
-    parser.add_argument("path").help("Path to SLURM output direcotry").required();
-    parser.add_argument("njobs").help("Number of jobs that were submitted to SLURM").required().scan<'i',unsigned>();
-    parser.add_argument("refresh").help("Time (in seconds) of the refresh frequency").required().scan<'i',unsigned>();
-    auto &group = parser.add_mutually_exclusive_group();
-    group.add_argument("-m","--minimal").help("Print minimal amount of information").flag();
-    group.add_argument("-f","--full").help("Print all available information").flag();
+    parser.add_argument("refresh").help("Time (in seconds) of the refresh period").required().scan<'i',unsigned>();
+    parser.add_argument("--user","-u").help("Username for whom the jobs should be displayed. Default is the callee.");
+    parser.add_argument("--jobs","-j").help("List of jobs you want to be monitored. Default is all jobs started since 00:00:00 of the current day.").nargs(1,10);
 
     parser.add_description("Slurm Job Monitor (" + std::string(SJM::Config::projectVersion) + 
-        ") - Monitoring script for standard HADES DST macro execution on the SLURM batchfarm at GSI");
+        ") - Monitoring script for the SLURM batchfarm at GSI");
 
     try 
     {
@@ -54,8 +52,7 @@ int main(int argc, char *argv[])
         std::exit(1);
     }
 
-    std::string resetPos;
-    SJM::JobManager jm(parser.get<std::string>("path"),parser.get<unsigned>("njobs"));
+    SJM::JobManager jm(parser.is_used("--user") ? parser.get<const std::optional<std::string>&>("--user") : std::nullopt, parser.is_used("--jobs") ? parser.get<const std::optional<std::vector<unsigned long> >&>("--jobs") : std::nullopt);
 
     while (true)
     {
@@ -69,12 +66,12 @@ int main(int argc, char *argv[])
             signal(SIGINT,SIG_IGN);
         }
             
-        auto document = jm.PrintStatus(parser.get<bool>("--minimal"),parser.get<bool>("--full"));
+        /* auto document = jm.PrintStatus(parser.get<bool>("--minimal"),parser.get<bool>("--full"));
         auto screen = ftxui::Screen::Create(ftxui::Dimension::Full(),ftxui::Dimension::Fit(document));
         Render(screen, document);
         std::cout << resetPos;
         screen.Print();
-        resetPos = screen.ResetPosition();
+        resetPos = screen.ResetPosition(); */
 
         std::this_thread::sleep_for(std::chrono::seconds(parser.get<unsigned>("refresh")));
     }

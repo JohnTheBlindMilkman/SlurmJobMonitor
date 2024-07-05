@@ -16,10 +16,10 @@
     namespace SJM::Config
     {
         inline constexpr std::string_view projectName{ "SlurmJobMonitor" };
-        inline constexpr std::string_view projectVersion{ "1.2.2" };
-        inline constexpr int projectVersionMajor { 1 };
-        inline constexpr int projectVersionMinor { 2 };
-        inline constexpr int projectVersionPatch { 2 };
+        inline constexpr std::string_view projectVersion{ "2.0.0" };
+        inline constexpr int projectVersionMajor { 2 };
+        inline constexpr int projectVersionMinor { 0 };
+        inline constexpr int projectVersionPatch { 0 };
     }
 
 #endif

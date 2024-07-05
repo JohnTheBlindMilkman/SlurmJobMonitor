@@ -11,104 +11,90 @@
 #ifndef JobManager_hxx
     #define JobManager_hxx
 
-    #include "Job.hxx"
     #include "ftxui/dom/elements.hpp"
     #include "ftxui/screen/screen.hpp"
     #include "ftxui/dom/table.hpp"
 
-    #include <filesystem>
-    #include <map>
+    #include "nlohmann/json.hpp"
+
+    #include <cstdlib>
     #include <iostream>
-    #include <cmath>
+    #include <fstream>
+    #include <chrono>
 
     namespace SJM
     {
+        /**
+         * @brief Helper struct for holding all necessary information
+         * 
+         */
+        struct Job
+        {
+            std::string exitCodeStatus,node,partition,qos,currentState,stateReason;
+            long unsigned jobId,taskId,elapsedTime,maxTime,startTime,endTime,submissionTime,priority,usedMemory,maxMemory;
+            std::vector<std::string> flags;
+        };
+        /**
+         * @brief Override of nlohmann::json method for data serialisation
+         * 
+         * @param j input nlohmann::json object
+         * @param job output Job struct
+         */
+        void from_json(const nlohmann::json &j,Job &job);
+
         class JobManager
         {
-            private:
-                static constexpr std::string_view finishedJobPostfix{".log"};
-                static constexpr std::string_view runningJobPostfix{".out"};
-                static constexpr unsigned maxRunningJobs{400};
-
-                /**
-                 * @brief Create a Table object 
-                 * 
-                 * @return ftxui::Elements 
-                 */
-                ftxui::Elements CreateTable();
-                /**
-                 * @brief Create a Status Box object
-                 * 
-                 * @return ftxui::Elements 
-                 */
-                ftxui::Elements CreateStatusBox();
-                /**
-                 * @brief Get a color corresponding to Job AnalysisStatus
-                 * 
-                 * @return ftxui::Color 
-                 */
-                ftxui::Color GetColorByStatus(const Job::AnalysisState &) const;
-                /**
-                 * @brief Create a Job State Vector object
-                 * 
-                 * @return std::vector<Job::AnalysisState> 
-                 */
-                std::vector<Job::AnalysisState> CreateJobStateVector();
-                /**
-                 * @brief Create a Job Error Message Vector object
-                 * 
-                 * @return ftxui::Elements 
-                 */
-                ftxui::Elements CreateJobErrorMsgVector();
-                /**
-                 * @brief Calculate the time variables related to the whole batch. Based on past runtime (.log files) the future runtime is calculated and added to the current longest running job. This gives the information ablut when the jobs are expected to finish.
-                 * 
-                 * @return std::tuple<std::chrono::seconds,std::chrono::seconds,std::chrono::high_resolution_clock::time_point> 
-                 */
-                std::tuple<std::chrono::seconds,std::chrono::seconds,std::chrono::high_resolution_clock::time_point> CalculateTimeLeft() const;
-                /**
-                 * @brief Create user friendly time format from std::chrono::duration type
-                 * 
-                 * @return std::stringstream 
-                 */
-                std::stringstream MakeTime(std::chrono::seconds);
-                std::pair<unsigned,unsigned> DirecotryContents(const std::string &dirPath) const;
-
-                std::map<std::string,Job> jobCollection;
-                std::chrono::seconds avgFinishTime,remainingTime;
-                std::chrono::high_resolution_clock::time_point ETA;
-                std::string directoryPath;
-                unsigned runningCounter,finishedCounter,totalJobs;
-
             public:
                 /**
                  * @brief Construct a new Job Manager object
                  * 
-                 * @param dirPath Path to the output directory of SLURM
-                 * @param njobs Total number of jobs submited to the batchfarm
+                 * @param username name of the user for whom the jobs should be monitored
+                 * @param jobIds collection of SLURM job ids to be monitored
                  */
-                JobManager(std::string dirPath,unsigned njobs);
+                JobManager(const std::optional<std::string> &username,const std::optional<std::vector<unsigned long> > &jobIds) noexcept;
                 /**
-                 * @brief Destroy the Job Manager object
-                 * 
-                 */
-                ~JobManager();
-
-                /**
-                 * @brief Called to read all the currently running jobs, update their status, time, and progress
+                 * @brief Called to read information about all the specified jobs
                  * 
                  * @return true If jobs are still running
                  * @return false In no jobs are left
                  */
                 bool UpdateJobs();
                 /**
-                 * @brief Get the whole GUI to be printed in the terminal 
+                 * @brief Callaed to update the terminal GUI (so TUI I guess???)
                  * 
-                 * @param minimal program flag
-                 * @param full program flag
-                 * @return ftxui::Element 
                  */
-                ftxui::Element PrintStatus(bool minimal, bool full);
+                void UpdateGui();
+
+            private:
+                enum class State
+                {
+                    Pending,
+                    Running,
+                    Completed,
+                    Failed,
+                    Timeout,
+                    Resizing,
+                    Deadline,
+                    NodeFail
+                };
+
+                [[nodiscard]] std::string ParseVector(const std::vector<unsigned long> &vec) const noexcept;
+                std::string ExecuteCommand(const std::optional<std::string> &username,const std::optional<std::vector<unsigned long> > &jobIds);
+                [[nodiscard]] nlohmann::json ReadJson(const std::string_view &strView);
+                [[nodiscard]] std::vector<Job> FromJsonToJobVector(const nlohmann::json &j);
+                [[nodiscard]] std::size_t CountJobsByState(const std::vector<Job> &vec, State state) const;
+
+                static constexpr std::string_view m_pathToJson{"./sacct.json"};
+
+                std::optional<std::string> m_userName;
+                std::optional<std::vector<unsigned long> > m_jobIdsVector;
+                std::vector<Job> m_jobCollection;
+                std::chrono::seconds m_averageRunTime, m_eta, m_remainingTime;
+                std::size_t m_numberOfJobs, m_finishedCounter, m_runningCounter, m_pendingCounter, m_failedCounter, m_timeoutCounter, m_resizingCounter, m_deadlineCounter, m_nodeFailCounter;
+                double m_totalMemAssigned, m_predictedTotalMemUsed, m_averagePastMemUsed;
+                bool hasJobsWithFinishedState;
+                const std::map<State,std::string> m_stateMap;
+
         };
     } // namespace SJM
     
