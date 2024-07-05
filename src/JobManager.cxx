@@ -69,9 +69,9 @@ namespace SJM
 
     std::string JobManager::ParseVector(const std::vector<unsigned long> &vec) const noexcept
     {
-        std::string outputCommand;
+        std::string outputCommand = "";
         for (const auto &elem : vec)
-            outputCommand += " " + elem;
+            outputCommand += " " + std::to_string(elem);
 
         return outputCommand;
     }
