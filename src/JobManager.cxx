@@ -57,7 +57,12 @@ namespace SJM
         m_deadlineCounter = CountJobsByState(m_jobCollection,State::Deadline);
         m_nodeFailCounter = CountJobsByState(m_jobCollection,State::NodeFail);
 
-        (m_finishedCounter > 0) ? hasJobsWithFinishedState = true : hasJobsWithFinishedState = false;
+        (m_finishedCounter > 0) ? m_hasJobsWithFinishedState = true : m_hasJobsWithFinishedState = false;
+
+        std::cout << "Pending: " << m_pendingCounter << "\n";
+        std::cout << "Running: " << m_runningCounter << "\n";
+        std::cout << "Finished: " << m_finishedCounter << "\n";
+        std::cout <<std::boolalpha << "Some jobs have finished: " << m_hasJobsWithFinishedState << "\n";
 
         return ((m_runningCounter + m_pendingCounter) > 0) ? true : false;
     }
@@ -101,9 +106,12 @@ namespace SJM
     std::vector<Job> JobManager::FromJsonToJobVector(const nlohmann::json &j)
     {
         std::vector<Job> jobVec;
+        Job jobStruct;
         for (const auto &job : j["jobs"]) // I should check somewhere if I get any jobs at all
         {
-            jobVec.push_back(job.get<Job>());
+            jobStruct = job.get<Job>();
+            if (jobStruct.taskId != 0)
+                jobVec.push_back(jobStruct);
         }
 
         return jobVec;

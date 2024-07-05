@@ -21,6 +21,7 @@
     #include <iostream>
     #include <fstream>
     #include <chrono>
+    #include <utility>
 
     namespace SJM
     {
@@ -92,7 +93,7 @@
                 std::chrono::seconds m_averageRunTime, m_eta, m_remainingTime;
                 std::size_t m_numberOfJobs, m_finishedCounter, m_runningCounter, m_pendingCounter, m_failedCounter, m_timeoutCounter, m_resizingCounter, m_deadlineCounter, m_nodeFailCounter;
                 double m_totalMemAssigned, m_predictedTotalMemUsed, m_averagePastMemUsed;
-                bool hasJobsWithFinishedState;
+                bool m_hasJobsWithFinishedState;
                 const std::map<State,std::string> m_stateMap;
 
         };
