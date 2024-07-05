@@ -57,6 +57,7 @@ include/JobManager.hxx
 src/JobManager.cxx)
 target_include_directories(base PUBLIC ${ftxui_SOURCE_DIR}/include)
 target_include_directories(base PUBLIC ${CMAKE_SOURCE_DIR}/include)
+target_include_directories(base PUBLIC ${nlohmann_json_SOURCE_DIR}/include)
 
 add_executable(monitor main.cxx)
 
