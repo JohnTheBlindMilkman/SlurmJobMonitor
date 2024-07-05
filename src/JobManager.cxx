@@ -43,7 +43,7 @@ namespace SJM
 
     bool JobManager::UpdateJobs()
     {
-        ExecuteCommand(m_userName,m_jobIdsVector);
+        std::cout << ExecuteCommand(m_userName,m_jobIdsVector) << "\n";
         m_jobCollection = FromJsonToJobVector(ReadJson(m_pathToJson));
 
         // this is not optimal, but I want things to be more explicit, and not being initialised around in the background
