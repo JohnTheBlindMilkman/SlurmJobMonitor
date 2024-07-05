@@ -69,9 +69,9 @@ namespace SJM
 
     std::string JobManager::ParseVector(const std::vector<unsigned long> &vec) const noexcept
     {
-        std::string outputCommand = "";
+        std::string outputCommand = " ";
         for (const auto &elem : vec)
-            outputCommand += " " + std::to_string(elem);
+            outputCommand += std::to_string(elem) + ",";
 
         return outputCommand;
     }
@@ -79,7 +79,7 @@ namespace SJM
     std::string JobManager::ExecuteCommand(const std::optional<std::string> &username,const std::optional<std::vector<unsigned long> > &jobIds)
     {
         std::string userFlag = (username.has_value()) ? "-u " + username.value() + " " : "";
-        std::string jobidFlag = (jobIds.has_value()) ? "-j " + ParseVector(jobIds.value()) : "-S 00:00:00"; // Comment from "man sacct": -S: Select jobs eligible after this time. Default is 00:00:00 of the current day
+        std::string jobidFlag = (jobIds.has_value()) ? "-j " + ParseVector(jobIds.value()) : ""; // Comment from "man sacct": -S: Select jobs eligible after this time. Default is 00:00:00 of the current day
 
         std::string command = "sacct " + userFlag + jobidFlag + " --json > sacct.json";
         std::system(command.data());
