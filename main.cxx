@@ -52,7 +52,13 @@ int main(int argc, char *argv[])
         std::exit(1);
     }
 
-    SJM::JobManager jm(parser.is_used("--user") ? parser.get<const std::optional<std::string>&>("--user") : std::nullopt, parser.is_used("--jobs") ? parser.get<const std::optional<std::vector<unsigned long> >&>("--jobs") : std::nullopt);
+    std::optional<std::string> name;
+    parser.is_used("--user") ? name = parser.get<std::string>("--user") : name = std::nullopt;
+
+    std::optional<std::vector<unsigned long> > jobs;
+    parser.is_used("--jobs") ? jobs = parser.get<std::vector<unsigned long> >("--jobs") : jobs = std::nullopt;
+
+    SJM::JobManager jm(name, jobs);
 
     while (true)
     {
