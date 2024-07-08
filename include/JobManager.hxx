@@ -88,15 +88,15 @@
 
                 static constexpr std::string_view m_pathToJson{"./sacct.json"};
 
+                const std::size_t m_totalJobs;
                 std::optional<std::string> m_userName;
                 std::optional<std::vector<unsigned long> > m_jobIdsVector;
+                const std::map<State,std::string> m_stateMap;
                 std::vector<Job> m_jobCollection;
                 std::chrono::seconds m_averageRunTime, m_eta, m_remainingTime;
                 std::size_t m_numberOfJobs, m_finishedCounter, m_runningCounter, m_pendingCounter, m_failedCounter, m_timeoutCounter, m_resizingCounter, m_deadlineCounter, m_nodeFailCounter;
                 double m_totalMemAssigned, m_predictedTotalMemUsed, m_averagePastMemUsed;
                 bool m_hasJobsWithFinishedState;
-                const std::map<State,std::string> m_stateMap;
-                const std::size_t m_totalJobs;
 
         };
     } // namespace SJM

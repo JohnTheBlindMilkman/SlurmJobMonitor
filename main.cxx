@@ -34,7 +34,7 @@ int main(int argc, char *argv[])
 {    
     argparse::ArgumentParser parser("monitor",std::string(SJM::Config::projectVersion));
 
-    parser.add_argument("njobs").help("Total number of submitted jobs").required().scan<'i',unsigned>();
+    parser.add_argument("njobs").help("Total number of submitted jobs").required().scan<'i',long unsigned>();
     parser.add_argument("--user","-u").help("Username for whom the jobs should be displayed. Default is the callee.");
     parser.add_argument("--jobs","-j").help("List of jobs you want to be monitored. Default is all jobs started since 00:00:00 of the current day.").nargs(1,10).scan<'i',unsigned long>();
 
@@ -58,7 +58,7 @@ int main(int argc, char *argv[])
     std::optional<std::vector<unsigned long> > jobs;
     parser.is_used("--jobs") ? jobs = parser.get<std::vector<unsigned long> >("--jobs") : jobs = std::nullopt;
 
-    SJM::JobManager jm(name, jobs);
+    SJM::JobManager jm(parser.get<long unsigned>("njobs"), name, jobs);
 
     while (true)
     {
