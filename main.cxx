@@ -34,7 +34,7 @@ int main(int argc, char *argv[])
 {    
     argparse::ArgumentParser parser("monitor",std::string(SJM::Config::projectVersion));
 
-    parser.add_argument("refresh").help("Time (in seconds) of the refresh period").required().scan<'i',unsigned>();
+    parser.add_argument("njobs").help("Total number of submitted jobs").required().scan<'i',unsigned>();
     parser.add_argument("--user","-u").help("Username for whom the jobs should be displayed. Default is the callee.");
     parser.add_argument("--jobs","-j").help("List of jobs you want to be monitored. Default is all jobs started since 00:00:00 of the current day.").nargs(1,10).scan<'i',unsigned long>();
 
@@ -79,7 +79,7 @@ int main(int argc, char *argv[])
         screen.Print();
         resetPos = screen.ResetPosition(); */
 
-        std::this_thread::sleep_for(std::chrono::seconds(parser.get<unsigned>("refresh")));
+        std::this_thread::sleep_for(std::chrono::seconds(60));
     }
 
     std::cout << std::endl;

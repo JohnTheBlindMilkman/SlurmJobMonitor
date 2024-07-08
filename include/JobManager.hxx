@@ -49,10 +49,11 @@
                 /**
                  * @brief Construct a new Job Manager object
                  * 
+                 * @param njobs number of jobs which the user submitted
                  * @param username name of the user for whom the jobs should be monitored
                  * @param jobIds collection of SLURM job ids to be monitored
                  */
-                JobManager(const std::optional<std::string> &username,const std::optional<std::vector<unsigned long> > &jobIds) noexcept;
+                JobManager(std::size_t njobs, const std::optional<std::string> &username, const std::optional<std::vector<unsigned long> > &jobIds) noexcept;
                 /**
                  * @brief Called to read information about all the specified jobs
                  * 
@@ -95,6 +96,7 @@
                 double m_totalMemAssigned, m_predictedTotalMemUsed, m_averagePastMemUsed;
                 bool m_hasJobsWithFinishedState;
                 const std::map<State,std::string> m_stateMap;
+                const std::size_t m_totalJobs;
 
         };
     } // namespace SJM

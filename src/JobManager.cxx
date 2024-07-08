@@ -25,7 +25,8 @@ namespace SJM
     }
 
 
-    JobManager::JobManager(const std::optional<std::string> &username,const std::optional<std::vector<unsigned long> > &jobIds) noexcept : 
+    JobManager::JobManager(std::size_t njobs,const std::optional<std::string> &username,const std::optional<std::vector<unsigned long> > &jobIds) noexcept : 
+    m_totalJobs(njobs),
     m_userName(username), 
     m_jobIdsVector(jobIds),
     m_stateMap(
@@ -48,7 +49,7 @@ namespace SJM
 
         // this is not optimal, but I want things to be more explicit, and not being initialised around in the background
         m_numberOfJobs = m_jobCollection.size();
-        m_pendingCounter = CountJobsByState(m_jobCollection,State::Pending);
+        //m_pendingCounter = CountJobsByState(m_jobCollection,State::Pending);
         m_runningCounter = CountJobsByState(m_jobCollection,State::Running);
         m_finishedCounter = CountJobsByState(m_jobCollection,State::Completed);
         m_failedCounter = CountJobsByState(m_jobCollection,State::Failed);
@@ -56,6 +57,10 @@ namespace SJM
         m_resizingCounter = CountJobsByState(m_jobCollection,State::Resizing);
         m_deadlineCounter = CountJobsByState(m_jobCollection,State::Deadline);
         m_nodeFailCounter = CountJobsByState(m_jobCollection,State::NodeFail);
+        if (m_totalJobs < m_runningCounter + m_finishedCounter)
+            throw std::runtime_error("njobs is smaller than running jobs + finished jobs");
+
+        m_pendingCounter = m_totalJobs - m_runningCounter - m_finishedCounter;
 
         (m_finishedCounter > 0) ? m_hasJobsWithFinishedState = true : m_hasJobsWithFinishedState = false;
 
@@ -82,7 +87,7 @@ namespace SJM
         std::string jobidFlag = (jobIds.has_value()) ? "-j " + ParseVector(jobIds.value()) : ""; // Comment from "man sacct": -S: Select jobs eligible after this time. Default is 00:00:00 of the current day
 
         std::string command = "sacct " + userFlag + jobidFlag + " --json > sacct.json";
-        std::system(command.data());
+        //std::system(command.data());
 
         return command;
     }
