@@ -79,7 +79,7 @@
                  * @return ftxui::Element 
                  */
                 [[nodiscard]] ftxui::Element RenderBatchInfo(std::size_t finished, std::size_t running, std::size_t njobs, std::string user) const;
-                [[nodiscard]] ftxui::Color GetColorByStatus(const Job::State state) const;
+                [[nodiscard]] std::pair<std::string,ftxui::Color> GetColorByStatus(const Job::State state) const;
         };
 
     } // namespace SJM

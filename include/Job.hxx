@@ -30,14 +30,21 @@
             public:
                 enum class State
                 {
+                    Requeued,
+                    Resizing,
                     Pending,
                     Running,
                     Completed,
-                    Completing,
                     Failed,
+                    NodeFail,
+                    OutOfMemory,
+                    Revoked,
                     Preempted,
                     Suspended,
-                    Stopped
+                    Timeout,
+                    Deadline,
+                    Cancelled,
+                    BootFail
                 };
                 enum class Partition
                 {

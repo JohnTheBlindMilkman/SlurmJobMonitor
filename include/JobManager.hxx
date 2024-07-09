@@ -31,7 +31,7 @@
                  * @param username name of the user for whom the jobs should be monitored
                  * @param jobIds collection of SLURM job ids to be monitored
                  */
-                JobManager(std::size_t njobs, const std::optional<std::string> &username, const std::optional<std::vector<unsigned long> > &jobIds) noexcept;
+                JobManager(std::size_t njobs, const std::string &username, const std::vector<unsigned long> &jobIds) noexcept;
                 /**
                  * @brief Called to read information about all the specified jobs
                  * 
@@ -58,11 +58,12 @@
                 static constexpr double m_toGiga = 1./1024/1024/1024;
 
                 const std::size_t m_totalJobs;
-                std::optional<std::string> m_userName;
-                std::optional<std::vector<unsigned long> > m_jobIdsVector;
+                std::string m_resetPos;
+                std::string m_userName;
+                const std::vector<unsigned long> m_jobIdsVector;
                 std::vector<Job> m_jobCollection;
                 std::chrono::seconds m_averageRunTime, m_eta, m_remainingTime;
-                std::size_t m_numberOfJobs, m_finishedCounter, m_runningCounter, m_pendingCounter, m_failedCounter, m_completingCounter, m_preemptedCounter, m_suspendedCounter, m_stoppedCounter;
+                std::size_t m_numberOfJobs, m_finishedCounter, m_runningCounter, m_pendingCounter, m_failedCounter, m_requeueCounter, m_resizeCounter, m_suspendedCounter;
                 double m_totalMemAssigned, m_predictedTotalMemUsed, m_averagePastMemUsed;
                 bool m_hasJobsWithFinishedState;
                 Graphics m_gui;

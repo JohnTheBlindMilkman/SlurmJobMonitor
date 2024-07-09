@@ -19,12 +19,14 @@ namespace SJM
     ftxui::Element Graphics::RenderStatusBlock(const std::vector<Job> &jobVec, std::size_t njobs) const
     {
         ftxui::Elements list;
+        std::pair<std::string,ftxui::Color> status;
         unsigned counter = 0;
 
         for (const Job &j : jobVec)
         {
             ++counter;
-            list.push_back(ftxui::text("   ") | ftxui::bgcolor(GetColorByStatus(j.GetState())));
+            status = GetColorByStatus(j.GetState());
+            list.push_back(ftxui::text(status.first) | ftxui::bgcolor(status.second));
         }
         while (counter < njobs)
         {
@@ -33,7 +35,7 @@ namespace SJM
         }
         
 
-        return ftxui::vbox(
+        /* return ftxui::vbox(
                 ftxui::hbox(
                     ftxui::text("Completed = "),
                     ftxui::text("   ") | ftxui::bgcolor(ftxui::Color::Green),
@@ -55,7 +57,104 @@ namespace SJM
                     ftxui::text("   ") | ftxui::bgcolor(ftxui::Color::Magenta)
                 ) | ftxui::center,
                 ftxui::separator(),
-                ftxui::hflow(std::move(list))) | ftxui::border;
+                ftxui::hflow(std::move(list))) | ftxui::border; */
+
+        return ftxui::vbox(
+            ftxui::hbox(
+                ftxui::hbox(
+                    ftxui::vbox(
+                        ftxui::hbox(
+                            ftxui::text("Completed = "),
+                            ftxui::text("   ") | ftxui::bgcolor(ftxui::Color::Green)
+                        ) | ftxui::align_right,
+                        ftxui::hbox(
+                            ftxui::text("Running = "),
+                            ftxui::text("   ") | ftxui::bgcolor(ftxui::Color::Yellow)
+                        ) | ftxui::align_right,
+                        ftxui::hbox(
+                            ftxui::text("Pending = "),
+                            ftxui::text("   ") | ftxui::bgcolor(ftxui::Color::GrayDark)
+                        ) | ftxui::align_right
+                    ),
+                    ftxui::vbox(
+                        ftxui::text(" "),
+                        ftxui::text(" "),
+                        ftxui::text(" ")
+                    ),
+                    ftxui::vbox(
+                        ftxui::hbox(
+                            ftxui::text("Requeued = "),
+                            ftxui::text("   ") | ftxui::bgcolor(ftxui::Color::YellowLight)
+                        ) | ftxui::align_right,
+                        ftxui::hbox(
+                            ftxui::text("Resizing = "),
+                            ftxui::text("   ") | ftxui::bgcolor(ftxui::Color::MagentaLight)
+                        ) | ftxui::align_right,
+                        ftxui::hbox(
+                            ftxui::text("Suspended = "),
+                            ftxui::text("   ") | ftxui::bgcolor(ftxui::Color::White)
+                        ) | ftxui::align_right
+                    )
+                ),
+                ftxui::filler(),
+                ftxui::hbox(
+                    ftxui::vbox(
+                        ftxui::hbox(
+                            ftxui::text("Failed = "),
+                            ftxui::text(" F ") | ftxui::bgcolor(ftxui::Color::Red)
+                        ) | ftxui::align_right,
+                        ftxui::hbox(
+                            ftxui::text("Node Fail = "),
+                            ftxui::text(" NF") | ftxui::bgcolor(ftxui::Color::Red)
+                        ) | ftxui::align_right,
+                        ftxui::hbox(
+                            ftxui::text("Out Of Memory = "),
+                            ftxui::text("OOM") | ftxui::bgcolor(ftxui::Color::Red)
+                        ) | ftxui::align_right
+                    ),
+                    ftxui::vbox(
+                        ftxui::text(" "),
+                        ftxui::text(" "),
+                        ftxui::text(" ")
+                    ),
+                    ftxui::vbox(
+                        ftxui::hbox(
+                            ftxui::text("Revoked = "),
+                            ftxui::text(" RV") | ftxui::bgcolor(ftxui::Color::Red)
+                        ) | ftxui::align_right,
+                        ftxui::hbox(
+                            ftxui::text("Preempted = "),
+                            ftxui::text(" PR") | ftxui::bgcolor(ftxui::Color::Red)
+                        ) | ftxui::align_right,
+                        ftxui::hbox(
+                            ftxui::text("Timeout = "),
+                            ftxui::text(" TO") | ftxui::bgcolor(ftxui::Color::Red)
+                        ) | ftxui::align_right
+                    ),
+                    ftxui::vbox(
+                        ftxui::text(" "),
+                        ftxui::text(" "),
+                        ftxui::text(" ")
+                    ),
+                    ftxui::vbox(
+                        ftxui::hbox(
+                            ftxui::text("Deadline = "),
+                            ftxui::text(" DL") | ftxui::bgcolor(ftxui::Color::Red)
+                        ) | ftxui::align_right,
+                        ftxui::hbox(
+                            ftxui::text("Cancelled = "),
+                            ftxui::text(" CA") | ftxui::bgcolor(ftxui::Color::Red)
+                        ) | ftxui::align_right,
+                        ftxui::hbox(
+                            ftxui::text("Boot Fail = "),
+                            ftxui::text(" BF") | ftxui::bgcolor(ftxui::Color::Red)
+                        ) | ftxui::align_right
+                    )
+                )
+            ) | ftxui::flex,
+            ftxui::separator(),
+            ftxui::hflow(std::move(list))
+        ) | ftxui::border;
     }
 
     ftxui::Element Graphics::RenderProgressBar(std::size_t finished, std::size_t njobs) const
@@ -135,36 +234,57 @@ namespace SJM
         ) | ftxui::border;
     }
 
-    ftxui::Color Graphics::GetColorByStatus(const Job::State state) const
+    std::pair<std::string,ftxui::Color> Graphics::GetColorByStatus(const Job::State state) const
     {
         switch (state)
         {
+            case Job::State::Requeued :
+                return std::make_pair("   ",ftxui::Color::YellowLight);
+
+            case Job::State::Resizing :
+                return std::make_pair("   ",ftxui::Color::MagentaLight);
+
             case Job::State::Pending :
-                return ftxui::Color::GrayDark;
+                return std::make_pair("   ",ftxui::Color::GrayDark);
 
             case Job::State::Running :
-                return ftxui::Color::Yellow;
+                return std::make_pair("   ",ftxui::Color::Yellow);
                 
             case Job::State::Completed :
-                return ftxui::Color::Green;
-
-            case Job::State::Completing :
-                return ftxui::Color::GreenLight;
+                return std::make_pair("   ",ftxui::Color::Green);
                 
             case Job::State::Failed :
-                return ftxui::Color::Red;
+                return std::make_pair(" F ",ftxui::Color::Red);
+
+            case Job::State::NodeFail :
+                return std::make_pair(" NF",ftxui::Color::Red);
+
+            case Job::State::OutOfMemory :
+                return std::make_pair("OOM",ftxui::Color::Red);
+
+            case Job::State::Revoked :
+                return std::make_pair(" RV",ftxui::Color::Red);
 
             case Job::State::Preempted :
-                return ftxui::Color::RedLight;
+                return std::make_pair(" PR",ftxui::Color::Red);
 
             case Job::State::Suspended :
-                return ftxui::Color::White;
+                return std::make_pair("   ",ftxui::Color::White);
 
-            case Job::State::Stopped :
-                return ftxui::Color::Magenta;
+            case Job::State::Timeout :
+                return std::make_pair(" TO",ftxui::Color::Red);
+
+            case Job::State::Deadline :
+                return std::make_pair(" DL",ftxui::Color::Red);
+
+            case Job::State::Cancelled :
+                return std::make_pair(" CA",ftxui::Color::Red);
+
+            case Job::State::BootFail :
+                return std::make_pair(" BF",ftxui::Color::Red);
 
             default:
-                return ftxui::Color::Default;
+                return std::make_pair("   ",ftxui::Color::Default);
         }
     }
 

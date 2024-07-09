@@ -28,14 +28,21 @@ namespace SJM
 
     Job::Job(const JobStruct &j) : 
     m_stateMap(
-        {{"PENDING",State::Pending},
+        {{"REQUEUED",State::Requeued},
+        {"RESIZING",State::Resizing},
+        {"PENDING",State::Pending},
         {"RUNNING",State::Running},
         {"COMPLETED",State::Completed},
-        {"COMPLETING",State::Completing},
         {"FAILED",State::Failed},
+        {"NODE_FAIL",State::NodeFail},
+        {"OUT_OF_MEMORY",State::OutOfMemory},
+        {"REVOKED",State::Revoked},
         {"PREEMPTED",State::Preempted},
         {"SUSPENDED",State::Suspended},
-        {"STOPPED",State::Stopped}}
+        {"TIMEOUT",State::Timeout},
+        {"DEADLINE",State::Deadline},
+        {"CANCELLED",State::Cancelled},
+        {"BOOT_FAIL",State::BootFail}}
     ),
     m_partitionMap(
         {{"main",Partition::Main},

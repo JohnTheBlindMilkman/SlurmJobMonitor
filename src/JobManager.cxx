@@ -2,10 +2,10 @@
 
 namespace SJM
 {
-    JobManager::JobManager(std::size_t njobs,const std::optional<std::string> &username,const std::optional<std::vector<unsigned long> > &jobIds) noexcept : 
+    JobManager::JobManager(std::size_t njobs,const std::string &username,const std::vector<unsigned long> &jobIds) noexcept : 
     m_totalJobs(njobs), m_userName(username), m_jobIdsVector(jobIds), m_jobCollection({}), m_averageRunTime(std::chrono::seconds(0)),
     m_eta(std::chrono::seconds(0)), m_remainingTime(std::chrono::seconds(0)), m_numberOfJobs(0), m_finishedCounter(0), m_runningCounter(0), 
-    m_pendingCounter(0), m_failedCounter(0), m_completingCounter(0), m_preemptedCounter(0), m_suspendedCounter(0), m_stoppedCounter(0),
+    m_pendingCounter(0), m_failedCounter(0), m_requeueCounter(0), m_resizeCounter(0), m_suspendedCounter(0),
     m_totalMemAssigned(0.), m_predictedTotalMemUsed(0.), m_averagePastMemUsed(0.), m_hasJobsWithFinishedState(false), m_gui()
     {
     }
@@ -35,13 +35,12 @@ namespace SJM
 
     void JobManager::UpdateGui()
     {
-        std::string resetPos;
-        auto document = m_gui.PrintStatus(m_jobCollection,{m_userName.value_or("unknown"),m_totalJobs,m_finishedCounter,m_runningCounter,m_averagePastMemUsed,m_jobCollection.at(0).GetRequestedMem()/1000,m_hasJobsWithFinishedState});
+        auto document = m_gui.PrintStatus(m_jobCollection,{m_userName,m_totalJobs,m_finishedCounter,m_runningCounter,m_averagePastMemUsed,m_jobCollection.at(0).GetRequestedMem()/1000,m_hasJobsWithFinishedState});
         auto screen = ftxui::Screen::Create(ftxui::Dimension::Full(),ftxui::Dimension::Fit(document));
         ftxui::Render(screen, document);
-        std::cout << resetPos;
+        std::cout << m_resetPos;
         screen.Print();
-        resetPos = screen.ResetPosition();
+        m_resetPos = screen.ResetPosition();
     }
 
     std::string JobManager::ParseVector(const std::vector<unsigned long> &vec) const noexcept
@@ -59,7 +58,7 @@ namespace SJM
         std::string jobidFlag = (jobIds.has_value()) ? "-j " + ParseVector(jobIds.value()) : ""; // Comment from "man sacct": -S: Select jobs eligible after this time. Default is 00:00:00 of the current day
 
         std::string command = "sacct " + userFlag + jobidFlag + " --json > sacct.json";
-        std::system(command.data());
+        //std::system(command.data());
 
         return command;
     }
@@ -105,15 +104,14 @@ namespace SJM
         m_pendingCounter = 0;
         m_finishedCounter = 0;
         m_runningCounter = 0;
-        m_completingCounter = 0;
         m_failedCounter = 0;
-        m_preemptedCounter = 0;
         m_suspendedCounter = 0;
-        m_stoppedCounter = 0;
+        m_requeueCounter = 0;
+        m_resizeCounter = 0;
         double sumUsedMem = 0;
         std::chrono::seconds sumRunTime(0);
 
-        if (!m_userName.has_value())
+        if (m_userName.empty())
         {
             m_userName = jobVec.at(0).GetName();
         }
@@ -121,6 +119,14 @@ namespace SJM
         {
             switch (job.GetState())
             {
+                case Job::State::Requeued :
+                    ++m_requeueCounter;
+                    break;
+
+                case Job::State::Resizing :
+                    ++m_resizeCounter;
+                    break;
+
                 case Job::State::Pending :
                     ++m_pendingCounter;
                     break;
@@ -134,25 +140,45 @@ namespace SJM
                     sumUsedMem += job.GetUsedMem()*m_toGiga;
                     sumRunTime += job.GetElapsedTime();
                     break;
-
-                case Job::State::Completing :
-                    ++m_completingCounter;
-                    break;
                     
                 case Job::State::Failed :
                     ++m_failedCounter;
                     break;
 
+                case Job::State::NodeFail :
+                    ++m_failedCounter;
+                    break;
+
+                case Job::State::OutOfMemory :
+                    ++m_failedCounter;
+                    break;
+
+                case Job::State::Revoked :
+                    ++m_failedCounter;
+                    break;
+
                 case Job::State::Preempted :
-                    ++m_preemptedCounter;
+                    ++m_failedCounter;
+                    break;
+
+                case Job::State::Timeout :
+                    ++m_failedCounter;
+                    break;
+
+                case Job::State::Deadline :
+                    ++m_failedCounter;
+                    break;
+
+                case Job::State::Cancelled :
+                    ++m_failedCounter;
+                    break;
+
+                case Job::State::BootFail :
+                    ++m_failedCounter;
                     break;
 
                 case Job::State::Suspended :
                     ++m_suspendedCounter;
-                    break;
-
-                case Job::State::Stopped :
-                    ++m_stoppedCounter;
                     break;
             }
         }
