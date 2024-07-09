@@ -2,61 +2,27 @@
 
 namespace SJM
 {
-    void from_json(const nlohmann::json &j,Job &job)
-    {
-        job.currentState = j["state"]["current"].get<std::vector<std::string> >().at(0);
-        job.elapsedTime = j["time"]["elapsed"].get<long unsigned>();
-        job.endTime = j["time"]["end"].get<long unsigned>();
-        job.startTime = j["time"]["start"].get<long unsigned>();
-        job.maxTime = j["time"]["eligible"].get<long unsigned>();
-        job.submissionTime = j["time"]["eligible"].get<long unsigned>();
-        job.exitCodeStatus = j["exit_code"]["status"].get<std::vector<std::string> >().at(0);
-        job.flags = j["flags"].get<std::vector<std::string> >();
-        job.jobId = j["array"]["job_id"].get<long unsigned>();
-        job.maxMemory = j["required"]["memory_per_node"]["number"].get<long unsigned>();
-        job.node = j["nodes"].get<std::string>();
-        job.partition = j["partition"].get<std::string>();
-        job.priority = j["priority"]["number"].get<long unsigned>();
-        job.qos = j["qos"].get<std::string>();
-        job.stateReason = j["state"]["reason"].get<std::string>();
-        job.taskId = j["array"]["task_id"]["number"].get<long unsigned>();
-        if (job.currentState == "COMPLETED")
-            job.usedMemory = j["steps"].at(0)["tres"]["requested"]["average"].at(1)["count"].get<long unsigned>();
-    }
-
-
     JobManager::JobManager(std::size_t njobs,const std::optional<std::string> &username,const std::optional<std::vector<unsigned long> > &jobIds) noexcept : 
-    m_totalJobs(njobs),
-    m_userName(username), 
-    m_jobIdsVector(jobIds),
-    m_stateMap(
-        {{State::Pending,"PENDING"},
-        {State::Running,"RUNNING"},
-        {State::Completed,"COMPLETED"},
-        {State::Failed,"FAILED"},
-        {State::Timeout,"N/A"},
-        {State::Resizing,"N/A"},
-        {State::Deadline,"N/A"},
-        {State::NodeFail,"N/A"},}
-    )
-    {      
+    m_totalJobs(njobs), m_userName(username), m_jobIdsVector(jobIds), m_jobCollection({}), m_averageRunTime(std::chrono::seconds(0)),
+    m_eta(std::chrono::seconds(0)), m_remainingTime(std::chrono::seconds(0)), m_numberOfJobs(0), m_finishedCounter(0), m_runningCounter(0), 
+    m_pendingCounter(0), m_failedCounter(0), m_completingCounter(0), m_preemptedCounter(0), m_suspendedCounter(0), m_stoppedCounter(0),
+    m_totalMemAssigned(0.), m_predictedTotalMemUsed(0.), m_averagePastMemUsed(0.), m_hasJobsWithFinishedState(false), m_gui()
+    {
     }
 
     bool JobManager::UpdateJobs()
     {
-        std::cout << ExecuteCommand(m_userName,m_jobIdsVector) << "\n";
+        //std::cout << ExecuteCommand(m_userName,m_jobIdsVector) << "\n";
+        ExecuteCommand(m_userName,m_jobIdsVector);
         m_jobCollection = FromJsonToJobVector(ReadJson(m_pathToJson));
+        std::tie(m_averageRunTime,m_averagePastMemUsed) = PopulateVariables(m_jobCollection);
+        /* std::cout << "Running: " << m_runningCounter << "\n";
+        std::cout << "Finished: " << m_finishedCounter << "\n";
+        std::cout << "All: " << m_totalJobs << "\n";
+        std::cout << "Avg run time: " << m_averageRunTime.count() << "\n";
+        std::cout << "Avg mem used: " << m_averagePastMemUsed << "\n";
+        std::cout << "Name: " << m_userName.value_or("unknown") << "\n"; */
 
-        // this is not optimal, but I want things to be more explicit, and not being initialised around in the background
-        m_numberOfJobs = m_jobCollection.size();
-        //m_pendingCounter = CountJobsByState(m_jobCollection,State::Pending);
-        m_runningCounter = CountJobsByState(m_jobCollection,State::Running);
-        m_finishedCounter = CountJobsByState(m_jobCollection,State::Completed);
-        m_failedCounter = CountJobsByState(m_jobCollection,State::Failed);
-        m_timeoutCounter = CountJobsByState(m_jobCollection,State::Timeout);
-        m_resizingCounter = CountJobsByState(m_jobCollection,State::Resizing);
-        m_deadlineCounter = CountJobsByState(m_jobCollection,State::Deadline);
-        m_nodeFailCounter = CountJobsByState(m_jobCollection,State::NodeFail);
         if (m_totalJobs < m_runningCounter + m_finishedCounter)
             throw std::runtime_error("njobs is smaller than running jobs + finished jobs");
 
@@ -64,12 +30,18 @@ namespace SJM
 
         (m_finishedCounter > 0) ? m_hasJobsWithFinishedState = true : m_hasJobsWithFinishedState = false;
 
-        std::cout << "Pending: " << m_pendingCounter << "\n";
-        std::cout << "Running: " << m_runningCounter << "\n";
-        std::cout << "Finished: " << m_finishedCounter << "\n";
-        std::cout <<std::boolalpha << "Some jobs have finished: " << m_hasJobsWithFinishedState << "\n";
-
         return ((m_runningCounter + m_pendingCounter) > 0) ? true : false;
+    }
+
+    void JobManager::UpdateGui()
+    {
+        std::string resetPos;
+        auto document = m_gui.PrintStatus(m_jobCollection,{m_userName.value_or("unknown"),m_totalJobs,m_finishedCounter,m_runningCounter,m_averagePastMemUsed,m_jobCollection.at(0).GetRequestedMem()/1000,m_hasJobsWithFinishedState});
+        auto screen = ftxui::Screen::Create(ftxui::Dimension::Full(),ftxui::Dimension::Fit(document));
+        ftxui::Render(screen, document);
+        std::cout << resetPos;
+        screen.Print();
+        resetPos = screen.ResetPosition();
     }
 
     std::string JobManager::ParseVector(const std::vector<unsigned long> &vec) const noexcept
@@ -87,7 +59,7 @@ namespace SJM
         std::string jobidFlag = (jobIds.has_value()) ? "-j " + ParseVector(jobIds.value()) : ""; // Comment from "man sacct": -S: Select jobs eligible after this time. Default is 00:00:00 of the current day
 
         std::string command = "sacct " + userFlag + jobidFlag + " --json > sacct.json";
-        //std::system(command.data());
+        std::system(command.data());
 
         return command;
     }
@@ -111,112 +83,81 @@ namespace SJM
     std::vector<Job> JobManager::FromJsonToJobVector(const nlohmann::json &j)
     {
         std::vector<Job> jobVec;
-        Job jobStruct;
+        JobStruct jobStruct;
         for (const auto &job : j["jobs"]) // I should check somewhere if I get any jobs at all
         {
-            jobStruct = job.get<Job>();
+            jobStruct = job.get<JobStruct>();
             if (jobStruct.taskId != 0)
-                jobVec.push_back(jobStruct);
+                jobVec.push_back(Job(jobStruct));
         }
 
         return jobVec;
     }
 
-    std::size_t JobManager::CountJobsByState(const std::vector<Job> &vec, State state) const
+    std::size_t JobManager::CountJobsByState(const std::vector<Job> &vec, Job::State state) const
     {
-        std::string strState = m_stateMap.at(state);
-        return std::count_if(vec.begin(),vec.end(),[strState](const Job &j){return strState == j.currentState;});
+        return std::count_if(vec.begin(),vec.end(),[&state](const Job &j){return state == j.GetState();});
     }
 
-    /* ftxui::Color JobManager::GetColorByStatus(const Job::AnalysisState &state) const
+    std::tuple<std::chrono::seconds,double> JobManager::PopulateVariables(const std::vector<Job> &jobVec)
     {
-        switch (state)
-        {
-            case Job::AnalysisState::NotStarted :
-                return ftxui::Color::GrayDark;
+        m_numberOfJobs = jobVec.size();
+        m_pendingCounter = 0;
+        m_finishedCounter = 0;
+        m_runningCounter = 0;
+        m_completingCounter = 0;
+        m_failedCounter = 0;
+        m_preemptedCounter = 0;
+        m_suspendedCounter = 0;
+        m_stoppedCounter = 0;
+        double sumUsedMem = 0;
+        std::chrono::seconds sumRunTime(0);
 
-            case Job::AnalysisState::Started :
-                return ftxui::Color::Yellow;
-                
-            case Job::AnalysisState::Finished :
-                return ftxui::Color::Green;
-                
-            case Job::AnalysisState::Error :
-                return ftxui::Color::Red;
-            default:
-                return ftxui::Color::Default;
+        if (!m_userName.has_value())
+        {
+            m_userName = jobVec.at(0).GetName();
         }
+        for (const Job &job : jobVec)
+        {
+            switch (job.GetState())
+            {
+                case Job::State::Pending :
+                    ++m_pendingCounter;
+                    break;
+
+                case Job::State::Running :
+                    ++m_runningCounter;
+                    break;
+                    
+                case Job::State::Completed :
+                    ++m_finishedCounter;
+                    sumUsedMem += job.GetUsedMem()*m_toGiga;
+                    sumRunTime += job.GetElapsedTime();
+                    break;
+
+                case Job::State::Completing :
+                    ++m_completingCounter;
+                    break;
+                    
+                case Job::State::Failed :
+                    ++m_failedCounter;
+                    break;
+
+                case Job::State::Preempted :
+                    ++m_preemptedCounter;
+                    break;
+
+                case Job::State::Suspended :
+                    ++m_suspendedCounter;
+                    break;
+
+                case Job::State::Stopped :
+                    ++m_stoppedCounter;
+                    break;
+            }
+        }
+
+        return std::make_tuple(sumRunTime/m_finishedCounter,sumUsedMem/m_finishedCounter);
     }
-
-    ftxui::Elements JobManager::CreateStatusBox()
-    {
-        ftxui::Elements elems;
-        for (const auto &jobState : CreateJobStateVector())
-        {
-            elems.push_back(ftxui::text("   ") | ftxui::bgcolor(GetColorByStatus(jobState)));
-        }
-
-        return elems;
-    } */
-    
-
-    /* ftxui::Element JobManager::PrintStatus(bool minimal, bool full)
-    {
-        ftxui::Elements contents,errors;
-        const std::time_t ETAtime = std::chrono::system_clock::to_time_t(ETA);
-
-        contents.push_back(ftxui::vbox(
-                    ftxui::hbox(
-                        ftxui::text("Total number of jobs: " + std::to_string(totalJobs)),
-                        ftxui::filler(),
-                        ftxui::text("Predicted remaining time: " + MakeTime(remainingTime).str())
-                    ),
-                    ftxui::hbox(
-                        ftxui::text("Finished jobs: " + std::to_string(finishedCounter)),
-                        ftxui::filler(),
-                        ftxui::text("Predicted ETA: " + std::string(std::ctime(&ETAtime))) 
-                    ),
-                    ftxui::hbox(
-                        ftxui::text("Currently running: " + std::to_string(runningCounter)),
-                        ftxui::filler(),
-                        ftxui::text("Previous average job runtime: " + MakeTime(avgFinishTime).str()) 
-                    )
-                ) | ftxui::border);
-
-        errors = std::move(CreateJobErrorMsgVector());
-        if (errors.size() > 0)
-        {
-            contents.push_back(ftxui::vbox(
-                ftxui::text("Errors") | ftxui::center | ftxui::color(ftxui::Color::Orange1),
-                ftxui::separator(),
-                std::move(errors)) | ftxui::border);
-        }
-
-        if (full)
-        {
-            contents.push_back(ftxui::vbox(
-                    ftxui::text("Currenlty running jobs") | ftxui::center,
-                    ftxui::separator(),
-                    ftxui::hflow(std::move(CreateTable()))) | ftxui::border
-                );
-        }
-        else if (!minimal)
-        {
-            contents.push_back(
-                ftxui::vbox(
-                ftxui::hbox(
-                    ftxui::text("Finished = "),
-                    ftxui::text("   ") | ftxui::bgcolor(ftxui::Color::Green),
-                    ftxui::text("   Running = "),
-                    ftxui::text("   ") | ftxui::bgcolor(ftxui::Color::Yellow),
-                    ftxui::text("   Pending = "),
-                    ftxui::text("   ") | ftxui::bgcolor(ftxui::Color::GrayDark),
-                    ftxui::text("   Error = "),
-                    ftxui::text("   ") | ftxui::bgcolor(ftxui::Color::Red)) | ftxui::center,
-                ftxui::separator(),
-                ftxui::hflow(std::move(CreateStatusBox()))) | ftxui::border);
-        }
-        return ftxui::vbox(std::move(contents));
-    } */
 
 } // namespace SJM

@@ -51,9 +51,11 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
 add_compile_options(-Wall -Wextra -Wpedantic -Wshadow -Wnon-virtual-dtor -Wold-style-cast)
 
 add_library(base 
-#include/Graphics.hxx
+include/Graphics.hxx
+include/Job.hxx
 include/JobManager.hxx
-#src/Graphics.cxx
+src/Graphics.cxx
+src/Job.cxx
 src/JobManager.cxx)
 target_include_directories(base PUBLIC ${ftxui_SOURCE_DIR}/include)
 target_include_directories(base PUBLIC ${CMAKE_SOURCE_DIR}/include)

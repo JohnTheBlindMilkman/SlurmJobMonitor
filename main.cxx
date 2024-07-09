@@ -72,12 +72,7 @@ int main(int argc, char *argv[])
             signal(SIGINT,SIG_IGN);
         }
             
-        /* auto document = jm.PrintStatus(parser.get<bool>("--minimal"),parser.get<bool>("--full"));
-        auto screen = ftxui::Screen::Create(ftxui::Dimension::Full(),ftxui::Dimension::Fit(document));
-        Render(screen, document);
-        std::cout << resetPos;
-        screen.Print();
-        resetPos = screen.ResetPosition(); */
+        jm.UpdateGui();
 
         std::this_thread::sleep_for(std::chrono::seconds(60));
     }
