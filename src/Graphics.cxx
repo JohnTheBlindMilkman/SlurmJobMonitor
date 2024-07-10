@@ -8,7 +8,7 @@ namespace SJM
 
         contents.push_back(ftxui::hbox(
             RenderMemUsage(info.usedMem,info.reqMem),
-            RenderBatchInfo(info.finishedJobs,info.runningJobs,info.nJobs,info.name) | ftxui::flex
+            RenderBatchInfo(info.finishedJobs,info.runningJobs,info.nJobs,info.name,info.remainigTime,info.ETA,info.avgPastRuntime) | ftxui::flex
         ));
         contents.push_back(RenderProgressBar(info.finishedJobs,info.nJobs));
         contents.push_back(RenderStatusBlock(jobVec,info.nJobs));
@@ -33,31 +33,6 @@ namespace SJM
             ++counter;
             list.push_back(ftxui::text("   ") | ftxui::bgcolor(ftxui::Color::GrayDark));
         }
-        
-
-        /* return ftxui::vbox(
-                ftxui::hbox(
-                    ftxui::text("Completed = "),
-                    ftxui::text("   ") | ftxui::bgcolor(ftxui::Color::Green),
-                    ftxui::text("   Running = "),
-                    ftxui::text("   ") | ftxui::bgcolor(ftxui::Color::Yellow),
-                    ftxui::text("   Pending = "),
-                    ftxui::text("   ") | ftxui::bgcolor(ftxui::Color::GrayDark),
-                    ftxui::text("   Error = "),
-                    ftxui::text("   ") | ftxui::bgcolor(ftxui::Color::Red)
-                ) | ftxui::center,
-                ftxui::hbox(
-                    ftxui::text("Completing = "),
-                    ftxui::text("   ") | ftxui::bgcolor(ftxui::Color::GreenLight),
-                    ftxui::text("   Preempted = "),
-                    ftxui::text("   ") | ftxui::bgcolor(ftxui::Color::RedLight),
-                    ftxui::text("   Suspended = "),
-                    ftxui::text("   ") | ftxui::bgcolor(ftxui::Color::White),
-                    ftxui::text("   Stoppped = "),
-                    ftxui::text("   ") | ftxui::bgcolor(ftxui::Color::Magenta)
-                ) | ftxui::center,
-                ftxui::separator(),
-                ftxui::hflow(std::move(list))) | ftxui::border; */
 
         return ftxui::vbox(
             ftxui::hbox(
@@ -211,7 +186,7 @@ namespace SJM
             ) | ftxui::border;
     }
 
-    ftxui::Element Graphics::RenderBatchInfo(std::size_t finished, std::size_t running, std::size_t njobs, std::string user) const
+    ftxui::Element Graphics::RenderBatchInfo(std::size_t finished, std::size_t running, std::size_t njobs, std::string user, std::string remTime, std::string eta, std::string avgRun) const
     {
         return ftxui::vbox(
             ftxui::text("Job summary for user " + user) | ftxui::center,
@@ -219,17 +194,17 @@ namespace SJM
             ftxui::hbox(
                 ftxui::text("Total number of jobs: " + std::to_string(njobs)),
                 ftxui::filler(),
-                ftxui::text("Predicted remaining time: PLACEHOLDER")
+                ftxui::text("Estimated remaining time: " + remTime)
             ),
             ftxui::hbox(
                 ftxui::text("Finished jobs: " + std::to_string(finished)),
                 ftxui::filler(),
-                ftxui::text("Predicted ETA: PLACEHOLDER") 
+                ftxui::text("Predicted ETA: " + eta) 
             ),
             ftxui::hbox(
                 ftxui::text("Currently running: " + std::to_string(running)),
                 ftxui::filler(),
-                ftxui::text("Previous average job runtime: PLACEHOLDER") 
+                ftxui::text("Previous average job runtime: " + avgRun) 
             )
         ) | ftxui::border;
     }

@@ -4,7 +4,7 @@ namespace SJM
 {
     JobManager::JobManager(std::size_t njobs,const std::string &username,const std::vector<unsigned long> &jobIds) noexcept : 
     m_totalJobs(njobs), m_userName(username), m_jobIdsVector(jobIds), m_jobCollection({}), m_averageRunTime(std::chrono::seconds(0)),
-    m_eta(std::chrono::seconds(0)), m_remainingTime(std::chrono::seconds(0)), m_numberOfJobs(0), m_finishedCounter(0), m_runningCounter(0), 
+    m_remainingTime(std::chrono::seconds(0)), m_eta(std::chrono::system_clock::now()), m_numberOfJobs(0), m_finishedCounter(0), m_runningCounter(0), 
     m_pendingCounter(0), m_failedCounter(0), m_requeueCounter(0), m_resizeCounter(0), m_suspendedCounter(0),
     m_totalMemAssigned(0.), m_predictedTotalMemUsed(0.), m_averagePastMemUsed(0.), m_hasJobsWithFinishedState(false), m_gui()
     {
@@ -35,7 +35,21 @@ namespace SJM
 
     void JobManager::UpdateGui()
     {
-        auto document = m_gui.PrintStatus(m_jobCollection,{m_userName,m_totalJobs,m_finishedCounter,m_runningCounter,m_averagePastMemUsed,m_jobCollection.at(0).GetRequestedMem()/1000,m_hasJobsWithFinishedState});
+        auto document = m_gui.PrintStatus(
+            m_jobCollection,
+            {
+                m_userName,
+                PrintTime(m_remainingTime),
+                PrintTime(m_eta),
+                PrintTime(m_averageRunTime),
+                m_totalJobs,
+                m_finishedCounter,
+                m_runningCounter,
+                m_averagePastMemUsed,
+                m_jobCollection.at(0).GetRequestedMem()/1000,
+                m_hasJobsWithFinishedState
+            }
+        );
         auto screen = ftxui::Screen::Create(ftxui::Dimension::Full(),ftxui::Dimension::Fit(document));
         ftxui::Render(screen, document);
         std::cout << m_resetPos;
@@ -58,7 +72,7 @@ namespace SJM
         std::string jobidFlag = (jobIds.has_value()) ? "-j " + ParseVector(jobIds.value()) : ""; // Comment from "man sacct": -S: Select jobs eligible after this time. Default is 00:00:00 of the current day
 
         std::string command = "sacct " + userFlag + jobidFlag + " --json > sacct.json";
-        //std::system(command.data());
+        std::system(command.data());
 
         return command;
     }
@@ -183,7 +197,61 @@ namespace SJM
             }
         }
 
+        m_remainingTime = (m_finishedCounter > 0) ? std::chrono::duration_cast<std::chrono::seconds>(std::ceil((m_totalJobs - m_finishedCounter)/m_runningCounter) * (sumRunTime/m_finishedCounter)) : std::chrono::seconds(0);
+        m_eta = std::chrono::system_clock::now() + m_remainingTime;
+        
         return std::make_tuple(sumRunTime/m_finishedCounter,sumUsedMem/m_finishedCounter);
+    }
+
+    std::string JobManager::PrintTime(std::chrono::seconds time) const
+    {
+        std::stringstream ss;
+        
+        using namespace std::chrono;
+        using days = std::chrono::duration<int, std::ratio<86400>>;
+
+        auto d = duration_cast<days>(time);
+        time -= d;
+        auto h = duration_cast<hours>(time);
+        time -= h;
+        auto m = duration_cast<minutes>(time);
+        time -= m;
+        auto s = duration_cast<seconds>(time);
+
+        auto dc = d.count();
+        auto hc = h.count();
+        auto mc = m.count();
+        auto sc = s.count();
+
+        ss.fill('0');
+        if (dc) {
+            ss << d.count() << "d";
+        }
+        if (dc || hc) {
+            if (dc) { ss << ":" << std::setw(2); } //pad if second set of numbers
+            ss << h.count() << "h";
+        }
+        if (dc || hc || mc) {
+            if (dc || hc) { ss << ":" << std::setw(2); }
+            ss << m.count() << "m";
+        }
+        if (dc || hc || mc || sc) {
+            if (dc || hc || mc) { ss << ":" << std::setw(2); }
+            ss << s.count() << 's';
+        }
+
+        return ss.str();
+    }
+
+    std::string JobManager::PrintTime(std::chrono::system_clock::time_point time) const
+    {
+        std::stringstream ss;
+
+        std::time_t timePoint = std::chrono::system_clock::to_time_t(time);
+        std::tm tm = *std::localtime(&timePoint);
+        ss << std::put_time(&tm,"%T %F %Z");
+
+        return ss.str();
     }
 
 } // namespace SJM

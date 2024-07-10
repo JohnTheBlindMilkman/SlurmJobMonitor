@@ -53,6 +53,8 @@
                 [[nodiscard]] std::vector<Job> FromJsonToJobVector(const nlohmann::json &j);
                 [[nodiscard]] std::size_t CountJobsByState(const std::vector<Job> &vec, Job::State state) const;
                 std::tuple<std::chrono::seconds,double> PopulateVariables(const std::vector<Job> &jobVec);
+                [[nodiscard]] std::string PrintTime(std::chrono::seconds time) const;
+                [[nodiscard]] std::string PrintTime(std::chrono::system_clock::time_point time) const;
 
                 static constexpr std::string_view m_pathToJson{"./sacct.json"};
                 static constexpr double m_toGiga = 1./1024/1024/1024;
@@ -62,7 +64,8 @@
                 std::string m_userName;
                 const std::vector<unsigned long> m_jobIdsVector;
                 std::vector<Job> m_jobCollection;
-                std::chrono::seconds m_averageRunTime, m_eta, m_remainingTime;
+                std::chrono::seconds m_averageRunTime, m_remainingTime;
+                std::chrono::system_clock::time_point m_eta;
                 std::size_t m_numberOfJobs, m_finishedCounter, m_runningCounter, m_pendingCounter, m_failedCounter, m_requeueCounter, m_resizeCounter, m_suspendedCounter;
                 double m_totalMemAssigned, m_predictedTotalMemUsed, m_averagePastMemUsed;
                 bool m_hasJobsWithFinishedState;

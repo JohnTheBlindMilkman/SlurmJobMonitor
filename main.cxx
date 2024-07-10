@@ -41,8 +41,8 @@ int main(int argc, char *argv[])
     argparse::ArgumentParser parser("monitor",std::string(SJM::Config::projectVersion));
 
     parser.add_argument("njobs").help("total number of submitted jobs").required().scan<'i',long unsigned>();
-    parser.add_argument("--user","-u").help("username for whom the jobs should be displayed. Default is the callee.");
-    parser.add_argument("--jobs","-j").help("list of jobs you want to be monitored. Default is all jobs started since 00:00:00 of the current day.").nargs(1,10).scan<'i',unsigned long>();
+    parser.add_argument("--user","-u").help("username for whom the jobs should be displayed. Default is the callee");
+    parser.add_argument("--jobs","-j").help("list of jobs you want to be monitored. Default is all jobs started since 00:00:00 of the current day").nargs(1,10).scan<'i',unsigned long>();
     auto &group = parser.add_mutually_exclusive_group();
     group.add_argument("-f","--fast")
         .action([&](const auto &){multiplier /= 2.;})
@@ -50,14 +50,14 @@ int main(int argc, char *argv[])
         .default_value(false)
         .implicit_value(true)
         .nargs(0)
-        .help("increase the base refresh time by a factor of two.");
+        .help("increase the base refresh time by a factor of two");
     group.add_argument("-s","--slow")
         .action([&](const auto &){multiplier *= 2.;})
         .append()
         .default_value(false)
         .implicit_value(true)
         .nargs(0)
-        .help("decrease the base refresh time by a factor of two.");
+        .help("decrease the base refresh time by a factor of two");
 
     parser.add_description("Slurm Job Monitor (" + std::string(SJM::Config::projectVersion) + 
         ") - Monitoring script for the SLURM batchfarm at GSI");

@@ -21,7 +21,7 @@
     {
         struct GraphicsDisplayInfo
         {
-            std::string name;
+            std::string name,remainigTime,ETA,avgPastRuntime;
             std::size_t nJobs,finishedJobs,runningJobs;
             double usedMem;
             unsigned long reqMem;
@@ -78,7 +78,7 @@
                  * @param user 
                  * @return ftxui::Element 
                  */
-                [[nodiscard]] ftxui::Element RenderBatchInfo(std::size_t finished, std::size_t running, std::size_t njobs, std::string user) const;
+                [[nodiscard]] ftxui::Element RenderBatchInfo(std::size_t finished, std::size_t running, std::size_t njobs, std::string user, std::string remTime, std::string eta, std::string avgRun) const;
                 [[nodiscard]] std::pair<std::string,ftxui::Color> GetColorByStatus(const Job::State state) const;
         };
 
