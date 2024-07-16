@@ -194,7 +194,7 @@ namespace SJM
 
         m_pendingCounter = m_totalJobs - m_runningCounter - m_finishedCounter;
 
-        m_remainingTime = (m_finishedCounter > 0) ? std::chrono::duration_cast<std::chrono::seconds>(std::ceil((m_totalJobs - m_finishedCounter)/m_runningCounter) * (sumRunTime/m_finishedCounter)) : std::chrono::seconds(0);
+        m_remainingTime = (m_finishedCounter > 0 && m_runningCounter > 0) ? std::chrono::duration_cast<std::chrono::seconds>(std::ceil((m_totalJobs - m_finishedCounter)/m_runningCounter) * (sumRunTime/m_finishedCounter)) : std::chrono::seconds(0);
         m_eta = minStartTime + m_remainingTime;
         
         if (m_finishedCounter > 0)
