@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
     constexpr float maxMult{8.};
     constexpr float minMult{1./8.};
     constexpr std::chrono::seconds baseTime{120};
-    float multiplier = 0; 
+    float multiplier = 1; 
     std::chrono::seconds refreshTime = baseTime;
 
     argparse::ArgumentParser parser("monitor",std::string(SJM::Config::projectVersion));
