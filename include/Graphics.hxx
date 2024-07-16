@@ -23,8 +23,7 @@
         {
             std::string name,remainigTime,ETA,avgPastRuntime;
             std::size_t nJobs,finishedJobs,runningJobs;
-            double usedMem;
-            unsigned long reqMem;
+            unsigned long usedMem,reqMem;
             bool hasFinishedJobs;
         };
         

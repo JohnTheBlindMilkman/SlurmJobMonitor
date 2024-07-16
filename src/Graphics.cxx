@@ -147,7 +147,7 @@ namespace SJM
         float prct = static_cast<float>(avgUsed) / static_cast<float>(requested);
 
         return ftxui::vbox(
-                ftxui::text("Average Memory Usage") | ftxui::center,
+                ftxui::text("Current Memory Usage") | ftxui::center,
                 ftxui::hbox(
                     ftxui::vbox(
                         ftxui::text("100%") | ftxui::align_right,

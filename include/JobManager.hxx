@@ -52,7 +52,7 @@
                 [[nodiscard]] nlohmann::json ReadJson(const std::string_view &strView);
                 [[nodiscard]] std::vector<Job> FromJsonToJobVector(const nlohmann::json &j);
                 [[nodiscard]] std::size_t CountJobsByState(const std::vector<Job> &vec, Job::State state) const;
-                std::tuple<std::chrono::seconds,double> PopulateVariables(const std::vector<Job> &jobVec);
+                std::tuple<std::chrono::seconds,long unsigned,long unsigned> PopulateVariables(const std::vector<Job> &jobVec);
                 [[nodiscard]] std::string PrintTime(std::chrono::seconds time) const;
                 [[nodiscard]] std::string PrintTime(std::chrono::system_clock::time_point time) const;
 
@@ -67,7 +67,8 @@
                 std::chrono::seconds m_averageRunTime, m_remainingTime;
                 std::chrono::system_clock::time_point m_eta;
                 std::size_t m_numberOfJobs, m_finishedCounter, m_runningCounter, m_pendingCounter, m_failedCounter, m_requeueCounter, m_resizeCounter, m_suspendedCounter;
-                double m_totalMemAssigned, m_predictedTotalMemUsed, m_averagePastMemUsed;
+                long unsigned m_totalMemAssigned, m_predictedTotalMemUsed;
+                double m_averagePastMemUsed;
                 bool m_hasJobsWithFinishedState;
                 Graphics m_gui;
 

@@ -12,21 +12,12 @@ namespace SJM
 
     bool JobManager::UpdateJobs()
     {
-        //std::cout << ExecuteCommand(m_userName,m_jobIdsVector) << "\n";
         ExecuteCommand(m_userName,m_jobIdsVector);
         m_jobCollection = FromJsonToJobVector(ReadJson(m_pathToJson));
-        std::tie(m_averageRunTime,m_averagePastMemUsed) = PopulateVariables(m_jobCollection);
-        /* std::cout << "Running: " << m_runningCounter << "\n";
-        std::cout << "Finished: " << m_finishedCounter << "\n";
-        std::cout << "All: " << m_totalJobs << "\n";
-        std::cout << "Avg run time: " << m_averageRunTime.count() << "\n";
-        std::cout << "Avg mem used: " << m_averagePastMemUsed << "\n";
-        std::cout << "Name: " << m_userName.value_or("unknown") << "\n"; */
+        std::tie(m_averageRunTime,m_totalMemAssigned,m_predictedTotalMemUsed) = PopulateVariables(m_jobCollection);
 
         if (m_totalJobs < m_runningCounter + m_finishedCounter)
             throw std::runtime_error("njobs is smaller than running jobs + finished jobs");
-
-        m_pendingCounter = m_totalJobs - m_runningCounter - m_finishedCounter;
 
         (m_finishedCounter > 0) ? m_hasJobsWithFinishedState = true : m_hasJobsWithFinishedState = false;
 
@@ -45,8 +36,8 @@ namespace SJM
                 m_totalJobs,
                 m_finishedCounter,
                 m_runningCounter,
-                m_averagePastMemUsed,
-                m_jobCollection.at(0).GetRequestedMem()/1000,
+                m_predictedTotalMemUsed,
+                m_totalMemAssigned,
                 m_hasJobsWithFinishedState
             }
         );
@@ -112,7 +103,7 @@ namespace SJM
         return std::count_if(vec.begin(),vec.end(),[&state](const Job &j){return state == j.GetState();});
     }
 
-    std::tuple<std::chrono::seconds,double> JobManager::PopulateVariables(const std::vector<Job> &jobVec)
+    std::tuple<std::chrono::seconds,long unsigned,long unsigned> JobManager::PopulateVariables(const std::vector<Job> &jobVec)
     {
         m_numberOfJobs = jobVec.size();
         m_pendingCounter = 0;
@@ -122,8 +113,10 @@ namespace SJM
         m_suspendedCounter = 0;
         m_requeueCounter = 0;
         m_resizeCounter = 0;
-        double sumUsedMem = 0;
-        std::chrono::seconds sumRunTime(0);
+        long unsigned sumReqMem = 0, predictedUsedMem = 0;
+        double sumUsedMem = 0, avgUsedMem = 0;
+        std::chrono::seconds sumRunTime(0),avgRunTime(0);
+        std::chrono::system_clock::time_point minStartTime(std::chrono::system_clock::now());
 
         if (m_userName.empty())
         {
@@ -147,12 +140,14 @@ namespace SJM
 
                 case Job::State::Running :
                     ++m_runningCounter;
+                    sumReqMem += job.GetRequestedMem()/1000;
                     break;
                     
                 case Job::State::Completed :
                     ++m_finishedCounter;
                     sumUsedMem += job.GetUsedMem()*m_toGiga;
                     sumRunTime += job.GetElapsedTime();
+                    minStartTime = std::min(minStartTime,job.GetStartTime());
                     break;
                     
                 case Job::State::Failed :
@@ -197,10 +192,19 @@ namespace SJM
             }
         }
 
+        m_pendingCounter = m_totalJobs - m_runningCounter - m_finishedCounter;
+
         m_remainingTime = (m_finishedCounter > 0) ? std::chrono::duration_cast<std::chrono::seconds>(std::ceil((m_totalJobs - m_finishedCounter)/m_runningCounter) * (sumRunTime/m_finishedCounter)) : std::chrono::seconds(0);
-        m_eta = std::chrono::system_clock::now() + m_remainingTime;
+        m_eta = minStartTime + m_remainingTime;
         
-        return std::make_tuple(sumRunTime/m_finishedCounter,sumUsedMem/m_finishedCounter);
+        if (m_finishedCounter > 0)
+        {
+            avgUsedMem = sumUsedMem/m_finishedCounter;
+            avgRunTime = sumRunTime/m_finishedCounter;
+            predictedUsedMem = avgUsedMem * m_runningCounter;
+        }
+
+        return std::make_tuple(avgRunTime,sumReqMem,predictedUsedMem);
     }
 
     std::string JobManager::PrintTime(std::chrono::seconds time) const
