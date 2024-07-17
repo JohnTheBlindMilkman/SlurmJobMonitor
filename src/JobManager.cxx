@@ -57,10 +57,10 @@ namespace SJM
         return outputCommand;
     }
 
-    std::string JobManager::ExecuteCommand(const std::optional<std::string> &username,const std::optional<std::vector<unsigned long> > &jobIds)
+    std::string JobManager::ExecuteCommand(const std::string &username,const std::vector<unsigned long> &jobIds)
     {
-        std::string userFlag = (username.has_value()) ? "-u " + username.value() + " " : "";
-        std::string jobidFlag = (jobIds.has_value()) ? "-j " + ParseVector(jobIds.value()) : ""; // Comment from "man sacct": -S: Select jobs eligible after this time. Default is 00:00:00 of the current day
+        std::string userFlag = (username != "") ? "-u " + username + " " : "";
+        std::string jobidFlag = (jobIds.size() > 0) ? "-j " + ParseVector(jobIds) : ""; // Comment from "man sacct": -S: Select jobs eligible after this time. Default is 00:00:00 of the current day
 
         std::string command = "sacct " + userFlag + jobidFlag + " --json > sacct.json";
         std::system(command.data());

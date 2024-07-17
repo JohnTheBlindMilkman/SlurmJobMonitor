@@ -48,7 +48,7 @@
             private:
 
                 [[nodiscard]] std::string ParseVector(const std::vector<unsigned long> &vec) const noexcept;
-                std::string ExecuteCommand(const std::optional<std::string> &username,const std::optional<std::vector<unsigned long> > &jobIds);
+                std::string ExecuteCommand(const std::string &username,const std::vector<unsigned long> &jobIds);
                 [[nodiscard]] nlohmann::json ReadJson(const std::string_view &strView);
                 [[nodiscard]] std::vector<Job> FromJsonToJobVector(const nlohmann::json &j);
                 [[nodiscard]] std::size_t CountJobsByState(const std::vector<Job> &vec, Job::State state) const;
