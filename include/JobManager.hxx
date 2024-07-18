@@ -27,11 +27,10 @@
                 /**
                  * @brief Construct a new Job Manager object
                  * 
-                 * @param njobs number of jobs which the user submitted
                  * @param username name of the user for whom the jobs should be monitored
                  * @param jobIds collection of SLURM job ids to be monitored
                  */
-                JobManager(std::size_t njobs, const std::string &username, const std::vector<unsigned long> &jobIds) noexcept;
+                JobManager(const std::string &username, const std::vector<unsigned long> &jobIds) noexcept;
                 /**
                  * @brief Called to read information about all the specified jobs
                  * 
@@ -50,7 +49,8 @@
                 [[nodiscard]] std::string ParseVector(const std::vector<unsigned long> &vec) const noexcept;
                 std::string ExecuteCommand(const std::string &username,const std::vector<unsigned long> &jobIds);
                 [[nodiscard]] nlohmann::json ReadJson(const std::string_view &strView);
-                [[nodiscard]] std::vector<Job> FromJsonToJobVector(const nlohmann::json &j);
+                [[nodiscard]] std::tuple<std::vector<Job>,std::size_t> FromJsonToJobVector(const nlohmann::json &j);
+                [[nodiscard]] unsigned ConvertBatchHash(const std::string &str) const;
                 [[nodiscard]] std::size_t CountJobsByState(const std::vector<Job> &vec, Job::State state) const;
                 std::tuple<std::chrono::seconds,long unsigned,long unsigned> PopulateVariables(const std::vector<Job> &jobVec);
                 [[nodiscard]] std::string PrintTime(std::chrono::seconds time) const;
@@ -59,7 +59,7 @@
                 static constexpr std::string_view m_pathToJson{"./sacct.json"};
                 static constexpr double m_toGiga = 1./1024/1024/1024;
 
-                const std::size_t m_totalJobs;
+                std::size_t m_totalJobs;
                 std::string m_resetPos;
                 std::string m_userName;
                 const std::vector<unsigned long> m_jobIdsVector;
@@ -71,6 +71,7 @@
                 double m_averagePastMemUsed;
                 bool m_hasJobsWithFinishedState;
                 Graphics m_gui;
+                const std::map<char,unsigned> m_hexTrueCounter;
 
         };
     } // namespace SJM

@@ -26,6 +26,11 @@ namespace SJM
             job.usedMemory = 0;
     }
 
+    void from_json(const nlohmann::json &j, JobArrayStruct &job)
+    {
+        job.nTasks = j["array"]["task"].get<std::string>();
+    }
+
     Job::Job(const JobStruct &j) : 
     m_stateMap(
         {{"REQUEUED",State::Requeued},

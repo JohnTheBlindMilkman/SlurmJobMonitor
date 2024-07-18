@@ -2,22 +2,42 @@
 
 namespace SJM
 {
-    JobManager::JobManager(std::size_t njobs,const std::string &username,const std::vector<unsigned long> &jobIds) noexcept : 
-    m_totalJobs(njobs), m_userName(username), m_jobIdsVector(jobIds), m_jobCollection({}), m_averageRunTime(std::chrono::seconds(0)),
+    JobManager::JobManager(const std::string &username,const std::vector<unsigned long> &jobIds) noexcept : 
+    m_totalJobs(0), m_userName(username), m_jobIdsVector(jobIds), m_jobCollection({}), m_averageRunTime(std::chrono::seconds(0)),
     m_remainingTime(std::chrono::seconds(0)), m_eta(std::chrono::system_clock::now()), m_numberOfJobs(0), m_finishedCounter(0), m_runningCounter(0), 
     m_pendingCounter(0), m_failedCounter(0), m_requeueCounter(0), m_resizeCounter(0), m_suspendedCounter(0),
-    m_totalMemAssigned(0.), m_predictedTotalMemUsed(0.), m_averagePastMemUsed(0.), m_hasJobsWithFinishedState(false), m_gui()
+    m_totalMemAssigned(0.), m_predictedTotalMemUsed(0.), m_averagePastMemUsed(0.), m_hasJobsWithFinishedState(false), m_gui(),
+    m_hexTrueCounter(
+        {{'0',0},
+        {'1',1},
+        {'2',1},
+        {'3',2},
+        {'4',1},
+        {'5',2},
+        {'6',2},
+        {'7',3},
+        {'8',1},
+        {'9',2},
+        {'A',2},
+        {'B',3},
+        {'C',2},
+        {'D',3},
+        {'E',3},
+        {'F',4}}
+    )
     {
     }
 
     bool JobManager::UpdateJobs()
     {
         ExecuteCommand(m_userName,m_jobIdsVector);
-        m_jobCollection = FromJsonToJobVector(ReadJson(m_pathToJson));
+        std::tie(m_jobCollection,m_pendingCounter) = FromJsonToJobVector(ReadJson(m_pathToJson));
         std::tie(m_averageRunTime,m_totalMemAssigned,m_predictedTotalMemUsed) = PopulateVariables(m_jobCollection);
 
+        /* std::cout << m_totalJobs << "\n";
+        std::cout << m_runningCounter + m_finishedCounter << "\n";
         if (m_totalJobs < m_runningCounter + m_finishedCounter)
-            throw std::runtime_error("njobs is smaller than running jobs + finished jobs");
+            throw std::runtime_error("njobs is smaller than running jobs + finished jobs"); */
 
         (m_finishedCounter > 0) ? m_hasJobsWithFinishedState = true : m_hasJobsWithFinishedState = false;
 
@@ -63,7 +83,7 @@ namespace SJM
         std::string jobidFlag = (jobIds.size() > 0) ? "-j " + ParseVector(jobIds) : ""; // Comment from "man sacct": -S: Select jobs eligible after this time. Default is 00:00:00 of the current day
 
         std::string command = "sacct " + userFlag + jobidFlag + " --json > sacct.json";
-        std::system(command.data());
+        //std::system(command.data());
 
         return command;
     }
@@ -84,18 +104,34 @@ namespace SJM
         return data;
     }
 
-    std::vector<Job> JobManager::FromJsonToJobVector(const nlohmann::json &j)
+    std::tuple<std::vector<Job>,std::size_t> JobManager::FromJsonToJobVector(const nlohmann::json &j)
     {
         std::vector<Job> jobVec;
+        std::size_t njobs = 0;
         JobStruct jobStruct;
         for (const auto &job : j["jobs"]) // I should check somewhere if I get any jobs at all
         {
             jobStruct = job.get<JobStruct>();
             if (jobStruct.taskId != 0)
+            {
                 jobVec.push_back(Job(jobStruct));
+            }
+            else
+            {
+                njobs += ConvertBatchHash(job.get<JobArrayStruct>().nTasks);
+            }
         }
 
-        return jobVec;
+        return std::make_tuple(jobVec,njobs);
+    }
+
+    unsigned JobManager::ConvertBatchHash(const std::string &str) const
+    {
+        unsigned counter = 0;
+        for (const auto &letter : str.substr(2)) // hex begins with "0x" and I have to reject it
+            counter += m_hexTrueCounter.at(letter);
+
+        return counter;
     }
 
     std::size_t JobManager::CountJobsByState(const std::vector<Job> &vec, Job::State state) const
@@ -106,7 +142,7 @@ namespace SJM
     std::tuple<std::chrono::seconds,long unsigned,long unsigned> JobManager::PopulateVariables(const std::vector<Job> &jobVec)
     {
         m_numberOfJobs = jobVec.size();
-        m_pendingCounter = 0;
+        m_totalJobs = 0;
         m_finishedCounter = 0;
         m_runningCounter = 0;
         m_failedCounter = 0;
@@ -135,7 +171,7 @@ namespace SJM
                     break;
 
                 case Job::State::Pending :
-                    ++m_pendingCounter;
+                    //++m_pendingCounter; // do nithing, I already managed this
                     break;
 
                 case Job::State::Running :
@@ -192,7 +228,7 @@ namespace SJM
             }
         }
 
-        m_pendingCounter = m_totalJobs - m_runningCounter - m_finishedCounter;
+       m_totalJobs = m_pendingCounter + m_runningCounter + m_finishedCounter;
 
         m_remainingTime = (m_finishedCounter > 0 && m_runningCounter > 0) ? std::chrono::duration_cast<std::chrono::seconds>(std::ceil((m_totalJobs - m_finishedCounter)/m_runningCounter) * (sumRunTime/m_finishedCounter)) : std::chrono::seconds(0);
         m_eta = minStartTime + m_remainingTime;

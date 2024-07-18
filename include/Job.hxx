@@ -18,12 +18,27 @@
             std::vector<std::string> flags;
         };
         /**
+         * @brief Helper struct for holding number of tasks in job array
+         * 
+         */
+        struct JobArrayStruct
+        {
+            std::string nTasks;
+        };
+        /**
          * @brief Override of nlohmann::json method for data serialisation
          * 
          * @param j input nlohmann::json object
          * @param job output Job struct
          */
         void from_json(const nlohmann::json &j,JobStruct &job);
+        /**
+         * @brief Override of nlohmann::json method for data serialisation
+         * 
+         * @param j input nlohmann::json object
+         * @param job output Job Array struct
+         */
+        void from_json(const nlohmann::json &j,JobArrayStruct &job);
 
         class Job
         {
