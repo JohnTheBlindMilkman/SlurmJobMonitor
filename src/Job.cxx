@@ -55,7 +55,8 @@ namespace SJM
         {"grid",Partition::Grid},
         {"high_mem",Partition::HighMem},
         {"gpu",Partition::Gpu},
-        {"debug",Partition::Debug}}
+        {"debug",Partition::Debug},
+        {"new",Partition::New}}
     )
     {
         m_currentState = m_stateMap.at(j.currentState);

@@ -68,7 +68,8 @@
                     Grid,
                     HighMem,
                     Gpu,
-                    Debug
+                    Debug,
+                    New
                 };
 
                 Job(const JobStruct &j);
