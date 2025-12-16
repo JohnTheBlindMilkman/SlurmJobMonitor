@@ -1,149 +1,130 @@
 #ifndef Job_hxx
     #define Job_hxx
 
-    #include "FileHandler.hxx"
-    #include "GlobalConstants.hxx"
+    #include "nlohmann/json.hpp"
 
-    #include <numeric>
-    #include <deque>
     #include <chrono>
-    #include <iomanip>
-    #include <iostream>
 
     namespace SJM
     {
+        /**
+         * @brief Helper struct for holding all necessary information
+         * 
+         */
+        struct JobStruct
+        {
+            std::string exitCodeStatus,node,partition,currentState,stateReason,name;
+            long unsigned jobId,taskId,elapsedTime,maxTime,startTime,endTime,submissionTime,priority,usedMemory,maxMemory;
+            std::vector<std::string> flags;
+        };
+        /**
+         * @brief Helper struct for holding number of tasks in job array
+         * 
+         */
+        struct JobArrayStruct
+        {
+            std::string nTasks;
+        };
+        /**
+         * @brief Override of nlohmann::json method for data serialisation
+         * 
+         * @param j input nlohmann::json object
+         * @param job output Job struct
+         */
+        void from_json(const nlohmann::json &j,JobStruct &job);
+        /**
+         * @brief Override of nlohmann::json method for data serialisation
+         * 
+         * @param j input nlohmann::json object
+         * @param job output Job Array struct
+         */
+        void from_json(const nlohmann::json &j,JobArrayStruct &job);
+
         class Job
         {
             public:
-                enum class AnalysisState{Error,NotStarted,Started,Finished};
+                enum class State
+                {
+                    Requeued,
+                    Resizing,
+                    Pending,
+                    Running,
+                    Completed,
+                    Failed,
+                    NodeFail,
+                    OutOfMemory,
+                    Revoked,
+                    Preempted,
+                    Suspended,
+                    Timeout,
+                    Deadline,
+                    Cancelled,
+                    BootFail
+                };
+                enum class Partition
+                {
+                    Main,
+                    Long,
+                    Grid,
+                    HighMem,
+                    Gpu,
+                    Debug,
+                    New
+                };
 
-                Job() = default;
-                explicit Job(const std::string &);
-                ~Job() = default;
-                Job(const Job&) = default;
-                Job& operator=(const Job&) = default;
-                Job(Job&&) = default;
-                Job& operator=(Job&&) = default;
-
-                bool Evaluate();
-                std::chrono::seconds CalcAverage(const std::deque<std::chrono::seconds> &);
-                unsigned CalcAverage(const std::deque<unsigned> &);
-                int GetPercentage() const;
-                std::chrono::seconds GetRunTime() const;
-                std::chrono::seconds GetRemainingTime() const;
-                std::string GetJobId() const;
-                std::string GetTaskId() const;
-                std::string GetErrorMsg() const;
-                AnalysisState State() const;
-                std::string_view PrintState() const;
-                std::string PrintPercentage() const;
-                std::string PrintRemainingTime();
-                std::string PrintElapsedTime();
-                std::string PrintEtaTime();
-                std::string PrintRunTime();
+                Job(const JobStruct &j);
+                [[nodiscard]] State GetState() const noexcept;
+                [[nodiscard]] Partition GetPartition() const noexcept;
+                [[nodiscard]] std::string GetNode() const noexcept;
+                [[nodiscard]] std::string GetName() const noexcept;
+                [[nodiscard]] unsigned long GetJobId() const noexcept;
+                [[nodiscard]] unsigned long GetTaskId() const noexcept;
+                [[nodiscard]] unsigned long GetUsedMem() const noexcept;
+                [[nodiscard]] unsigned long GetRequestedMem() const noexcept;
+                [[nodiscard]] std::chrono::seconds GetElapsedTime() const noexcept;
+                [[nodiscard]] std::chrono::seconds GetMaxTime() const noexcept;
+                [[nodiscard]] std::chrono::system_clock::time_point GetStartTime() const noexcept;
+                [[nodiscard]] std::chrono::system_clock::time_point GetEndTime() const noexcept;
+                [[nodiscard]] std::chrono::system_clock::time_point GetSubTime() const noexcept;
+                [[nodiscard]] std::vector<std::string> GetListOfFlags() const noexcept;
 
             private:
-                AnalysisState EvalState();
-                std::stringstream MakeTime(std::chrono::seconds);
-                std::chrono::seconds ReadTime(const std::string &&);
-                void CalculateTime();
+                [[nodiscard]] std::chrono::seconds MakeDuration(unsigned long) const noexcept;
+                [[nodiscard]] std::chrono::system_clock::time_point MakeTimePoint(unsigned long) const noexcept;
 
-                static constexpr std::size_t maxQueueSize{5};
-                static constexpr std::string_view realTimePrefix{"real	"};
-                static constexpr int maxErrorCount{5};
-
-                bool hasStarted,hasFinished;
-                int currentPercentage,lastPercentage,avgPercentage,errorCounter;
-                std::string fileContents,percent,jobId,taskId,fileName,errorMessage;
-                AnalysisState state;
-                std::chrono::system_clock::time_point currentTime,lastTime;
-                std::chrono::seconds avgElapsedTime,ETA,remainigTime,realRunTime;
-                std::deque<std::chrono::seconds> elapsedQueue;
-                std::deque<unsigned> progressQueue;
+                State m_currentState;
+                Partition m_partition;
+                const std::map<std::string,State> m_stateMap;
+                const std::map<std::string,Partition> m_partitionMap;
+                std::string m_exitCodeStatus,m_node,m_stateReason,m_name;
+                long unsigned m_jobId,m_taskId,m_priority,m_usedMemory,m_maxMemory;
+                std::chrono::seconds m_elapsedTime,m_maxTime;
+                std::chrono::system_clock::time_point m_startTime,m_endTime,m_submissionTime;
+                std::vector<std::string> m_flags;
         };
-        inline std::chrono::seconds Job::CalcAverage(const std::deque<std::chrono::seconds> &queue)
+
+        inline std::chrono::seconds Job::MakeDuration(unsigned long time) const noexcept {return std::chrono::seconds(time);}
+
+        inline std::chrono::system_clock::time_point Job::MakeTimePoint(unsigned long time) const noexcept 
         {
-            return std::accumulate(queue.begin(),queue.end(),std::chrono::seconds(0)) / queue.size();
+            return std::chrono::system_clock::time_point(std::chrono::seconds(time));
         }
 
-        inline unsigned Job::CalcAverage(const std::deque<unsigned> &queue)
-        {
-            return std::accumulate(queue.begin(),queue.end(),0) / queue.size();
-        }
+        inline Job::State Job::GetState() const noexcept {return m_currentState;}
+        inline Job::Partition Job::GetPartition() const noexcept {return m_partition;}
+        inline std::string Job::GetNode() const noexcept {return m_node;}
+        inline std::string Job::GetName() const noexcept {return m_name;}
+        inline unsigned long Job::GetJobId() const noexcept {return m_jobId;}
+        inline unsigned long Job::GetTaskId() const noexcept {return m_taskId;}
+        inline unsigned long Job::GetUsedMem() const noexcept {return m_usedMemory;}
+        inline unsigned long Job::GetRequestedMem() const noexcept {return m_maxMemory;}
+        inline std::chrono::seconds Job::GetElapsedTime() const noexcept {return m_elapsedTime;}
+        inline std::chrono::seconds Job::GetMaxTime() const noexcept {return m_maxTime;}
+        inline std::chrono::system_clock::time_point Job::GetStartTime() const noexcept {return m_startTime;}
+        inline std::chrono::system_clock::time_point Job::GetEndTime() const noexcept {return m_endTime;}
+        inline std::chrono::system_clock::time_point Job::GetSubTime() const noexcept {return m_submissionTime;}
+        inline std::vector<std::string> Job::GetListOfFlags() const noexcept {return m_flags;}
 
-        inline int Job::GetPercentage() const
-        {
-            return currentPercentage;
-        }
-
-        inline std::chrono::seconds Job::GetRunTime() const
-        {
-            return realRunTime;
-        }
-
-        inline std::chrono::seconds Job::GetRemainingTime() const
-        {
-            return remainigTime;
-        }
-
-        inline std::string Job::GetJobId() const
-        {
-            return jobId;
-        }
-
-        inline std::string Job::GetTaskId() const
-        {
-            return taskId;
-        }
-
-        inline std::string Job::GetErrorMsg() const
-        {
-            return errorMessage;
-        }
-
-        inline Job::AnalysisState Job::State() const
-        {
-            return state;
-        }
-
-        inline std::string_view Job::PrintState() const
-        {
-            switch (state)
-            {
-                case Job::AnalysisState::NotStarted:
-                    return "Not Started";
-
-                case Job::AnalysisState::Started:
-                    return "Started";
-
-                case Job::AnalysisState::Finished:
-                    return "Finished";
-
-                case Job::AnalysisState::Error:
-                    return "Error";
-            }
-            return "";
-        }
-        inline std::string Job::PrintPercentage() const
-        {
-            return std::to_string(currentPercentage);
-        }
-        inline std::string Job::PrintRemainingTime()
-        {
-            return MakeTime(remainigTime).str();
-        }
-        inline std::string Job::PrintElapsedTime()
-        {
-            return MakeTime(avgElapsedTime).str();
-        }
-        inline std::string Job::PrintEtaTime()
-        {
-            return MakeTime(ETA).str();
-        }
-        inline std::string Job::PrintRunTime()
-        {
-            return MakeTime(realRunTime).str();
-        }
     } // namespace SJM
     
 

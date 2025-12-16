@@ -1,45 +1,78 @@
+/**
+ * @file JobManager.hxx
+ * @author Jędrzej Kołaś (jedrzej.kolas.dokt@pw.edu.pl)
+ * @brief Container-like class for storing and managing Job class objects, and estimating runtime of the whole submitted job batch
+ * @version 2.0.0
+ * @date 2024-06-02
+ * 
+ * @copyright Copyright (c) 2024
+ * 
+ */
 #ifndef JobManager_hxx
     #define JobManager_hxx
 
-    #include "Job.hxx"
-    #include "ftxui/dom/elements.hpp"
-    #include "ftxui/screen/screen.hpp"
-    #include "ftxui/dom/table.hpp"
+    #include "Graphics.hxx"
 
-    #include <filesystem>
-    #include <map>
+    #include <cstdlib>
     #include <iostream>
-    #include <cmath>
+    #include <fstream>
+    #include <chrono>
+    #include <utility>
 
     namespace SJM
     {
         class JobManager
         {
-            private:
-                static constexpr std::string_view finishedJobPostfix{".log"};
-                static constexpr std::string_view runningJobPostfix{".out"};
-                static constexpr unsigned maxRunningJobs{400};
-
-                ftxui::Elements CreateTable();
-                ftxui::Elements CreateStatusBox();
-                ftxui::Color GetColorByStatus(const Job::AnalysisState &) const;
-                std::vector<Job::AnalysisState> CreateJobStateVector();
-                ftxui::Elements CreateJobErrorMsgVector();
-                std::tuple<std::chrono::seconds,std::chrono::seconds,std::chrono::high_resolution_clock::time_point> CalculateTimeLeft() const;
-                std::stringstream MakeTime(std::chrono::seconds);
-
-                std::map<std::string,Job> jobCollection;
-                std::chrono::seconds avgFinishTime,remainingTime;
-                std::chrono::high_resolution_clock::time_point ETA;
-                std::string directoryPath;
-                unsigned runningCounter,finishedCounter,totalJobs;
-
             public:
-                JobManager(std::string dirPath,unsigned njobs);
-                ~JobManager();
-
+                /**
+                 * @brief Construct a new Job Manager object
+                 * 
+                 * @param username name of the user for whom the jobs should be monitored
+                 * @param jobIds collection of SLURM job ids to be monitored
+                 */
+                JobManager(const std::string &username, const std::vector<unsigned long> &jobIds) noexcept;
+                /**
+                 * @brief Called to read information about all the specified jobs
+                 * 
+                 * @return true If jobs are still running
+                 * @return false In no jobs are left
+                 */
                 bool UpdateJobs();
-                ftxui::Element PrintStatus(bool minimal, bool full);
+                /**
+                 * @brief Callaed to update the terminal GUI (so TUI I guess???)
+                 * 
+                 */
+                void UpdateGui();
+
+            private:
+
+                [[nodiscard]] std::string ParseVector(const std::vector<unsigned long> &vec) const noexcept;
+                std::string ExecuteCommand(const std::string &username,const std::vector<unsigned long> &jobIds);
+                [[nodiscard]] nlohmann::json ReadJson(const std::string_view &strView);
+                [[nodiscard]] std::tuple<std::vector<Job>,std::size_t> FromJsonToJobVector(const nlohmann::json &j);
+                [[nodiscard]] unsigned ConvertBatchHash(const std::string &str) const;
+                [[nodiscard]] std::size_t CountJobsByState(const std::vector<Job> &vec, Job::State state) const;
+                std::tuple<std::chrono::seconds,long unsigned,long unsigned> PopulateVariables(const std::vector<Job> &jobVec);
+                [[nodiscard]] std::string PrintTime(std::chrono::seconds time) const;
+                [[nodiscard]] std::string PrintTime(std::chrono::system_clock::time_point time) const;
+
+                static constexpr std::string_view m_pathToJson{"./sacct.json"};
+                static constexpr double m_toGiga = 1./1024/1024/1024;
+
+                std::size_t m_totalJobs;
+                std::string m_resetPos;
+                std::string m_userName;
+                const std::vector<unsigned long> m_jobIdsVector;
+                std::vector<Job> m_jobCollection;
+                std::chrono::seconds m_averageRunTime, m_remainingTime;
+                std::chrono::system_clock::time_point m_eta;
+                std::size_t m_numberOfJobs, m_finishedCounter, m_runningCounter, m_pendingCounter, m_failedCounter, m_requeueCounter, m_resizeCounter, m_suspendedCounter;
+                long unsigned m_totalMemAssigned, m_predictedTotalMemUsed;
+                double m_averagePastMemUsed;
+                bool m_hasJobsWithFinishedState;
+                Graphics m_gui;
+                const std::map<char,unsigned> m_hexTrueCounter;
+
         };
     } // namespace SJM
     

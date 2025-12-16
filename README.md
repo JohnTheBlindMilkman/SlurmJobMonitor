@@ -14,14 +14,13 @@ This program utilises the following:
 
 Clone this repository and once youre inside the directory do:
 ```
-mkdir build
-cd build
-cmake -DCMAKE_BUILD_TYPE=Release ..
-make
+cmake -S . -B build/
+cmake --build build/ --target monitor --config Release
 ```
-and pray for successful compilation. If you wish to create documentation add `-DSJM_ENABLE_DOXYGEN=ON` flag before the `..` (make sure you have doxygen installed on your machine).
-
-> If you want to use a debugger, because something is broken or you broke something, change the `-DCMAKE_BUILD_TYPE=Release` flag to `Debug`.
+and pray for successful compilation. 
+- If you wish to create documentation add `-DSJM_ENABLE_DOXYGEN=ON` flag after the `-B build/` (make sure to specify building of the documentation in the `--target` flag). 
+- If you wand to use a different build system, specify it in the first `cmake` command, e.g. if you want o use ninja: `cmake -S . -B build/ -G Ninja`. 
+- If you want to use a debugger because something is broken or you broke something, or you want to run a profiler, change the `--config Release` flag to `Debug` to have symobls generated.
 
 ## Usage
 
