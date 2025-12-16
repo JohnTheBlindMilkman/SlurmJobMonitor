@@ -1,6 +1,6 @@
 # Slurm Job Monitor
 
-Slurm Job Monitor (SJM) is a script-like program which sole purpose is to monitor jobs run on the SLURM scheduler at GSI. Currently the program only supports monitoring standard DST analysis at HADES. If you wish to expand this functionality submit a pull request (this will need a lot of restructurisaition of the code, just be warned).
+Slurm Job Monitor (SJM) is a TUI script-like program which sole purpose is to monitor jobs run on the SLURM scheduler at GSI.
 
 ## Dependencies
 
@@ -24,29 +24,29 @@ and pray for successful compilation.
 
 ## Usage
 
-For the script to work it need access to the output folder where SLURM saves the log files of the finished jobs. Before that happens, i.e. while the jobs are being executed, the .log file exists as an .out file (contents are the same). These files are what the SJM looks for and where it takes the information from.
+The program utilieses the use of `sacct` command from whcich it is able to retreive information about specific jobs run by SLURM. To run this program simply type `./monitor`. This will show all jobs which are running for the user since midnight and update the status every two minutes.
 
-Currently there are two options for running this program:
-- Compile it on your local linux distribution and use the `sshfs` command to mount the out/ folder there.
-- Build the program on vae24.hpc, where the newest software is installed (gcc 10.4 and cmake 3.18).
+Currently there are additional flags for running the program:
+- `-u` or `--user` to specify for which user you want to monitor the jobs
+- `-j` or `--jobs` to provide a list of up to 10 job IDs which you want to monitor
+- `-s` or `--slow` to slow down the polling refresh rate by a factor of two (can be stacked up to 3 times)
+- `-f` or `--fast` to speed up the polling refresh rate by a factor of two (can be stacked up to 3 times)
 
-In order to run the program execcute the binary file `./monintor` with 3 mandatory arguments:
-- path to mounted out/ directory
-- the total number of jobs submitted to SLURM
-- refresh rate (time in seconds) of the program
+The flags for printing help and version are also supported.
 
-> **Important note:** do not set the refresh rate too high, the program takes some time to read all the files (expecially with a lot of files). Moreover, if the refresh rate is too quick it messes up the remaing time calculation. As of the moment of speaking 30s seems to be the smallest number it will work with.
+During its execution the program will prnt a TUI-like interface which will show:
+- The percentage of jobs which have finished
+- The average memory usage (only after at least one job has finished its execution)
+- The average runtime (only after at least one job has finished its execution)
+- The estimated duration which the analysis will run and ETA (only after at least one job has finished its execution)
+- Colorful tiles whcich represent a job (each color represents the current state of the job, e.g. pending, running, completed)
 
-The SJM has three modes of printing the information:
-- standard mode - information about the amount of running jobs and total jobs with a graphical representation of them
-- minimal mode - onlu the information about running and total jobs
-- full mode - prints a table with information about all jobs separately (ID, state, remaining time)
+![An example of the TUI the user can expect to see when running the program](/images/tui_example.png)
 
-## Limitations
+## Known Issues
 
-1. Your job has to use the standard HTool analysis percentage print.
-2. Your jobs have to end with the standard "Finished DST analysis".
-3. SLURM output has to be all in one direcotry.
+1. The program will crash if all requested jobs are still pending
+2. The program is incorrectly calculating the duration and ETA times
 
 ## Final Note
 
